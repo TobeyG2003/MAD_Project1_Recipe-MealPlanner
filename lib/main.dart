@@ -35,6 +35,11 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       void initState() {
         super.initState();
         _tabController = TabController(length: 5, vsync: this);
+        _tabController.animation!.addListener(() {
+        setState(() {
+          
+        });
+      });
       }
 
       @override
@@ -48,14 +53,16 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: const Color.fromARGB(255, 188, 44, 44),
         title: Text(widget.title),
       ),
+      
       bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: const Color.fromARGB(255, 188, 44, 44),
         currentIndex: _tabController.index,
         onTap: (index) {
           setState(() {
-            _tabController.index = index;
+            _tabController.animateTo(index);
           });
         },
         type: BottomNavigationBarType.fixed,
@@ -68,20 +75,64 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         ],
       ),
       
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          //tab 1
-          Center(child: Text('Home Content')),
-          //tab 2
-          Center(child: Text('Settings Content')),
-          //tab 3
-          Center(child: Text('Profile Content')),
-          //tab 4
-          Center(child: Text('Notifications Content')),
-          //tab 5
-          Center(child: Text('Info Content')),
-        ],
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          const double speedFactor = 100.0;
+          final animation = _tabController.animation;
+          final double screenW = constraints.maxWidth;
+          const int repeatCount = 3;
+          final double wideWidth = screenW * repeatCount;
+
+          return Stack(
+            children: [
+              AnimatedBuilder(
+                animation: animation ?? AlwaysStoppedAnimation(0),
+                builder: (context, child) {
+                  final double animValue = (animation?.value ?? _tabController.index).toDouble();
+                  final double rawDx = animValue * speedFactor;
+                  final double dx = -(rawDx % screenW);
+                  return Positioned(
+                    left: dx,
+                    top: 0,
+                    bottom: 0,
+                    child: child!,
+                  );
+                },
+                child: Container(
+                  width: wideWidth,
+                  decoration: BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage('tiledbackground.jpg'),
+                      scale: 1.25,
+                      colorFilter: ColorFilter.mode(
+        Colors.black.withOpacity(.8), // Adjust opacity here
+        BlendMode.dstATop, // Or other BlendMode for different effects
+      ),
+                      repeat: ImageRepeat.repeat,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    //tab 1
+                    Center(child: Text('Home Content')),
+                    //tab 2
+                    Center(child: Text('Settings Content')),
+                    //tab 3
+                    Center(child: Text('Profile Content')),
+                    //tab 4
+                    Center(child: Text('Notifications Content')),
+                    //tab 5
+                    Center(child: Text('Info Content')),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
