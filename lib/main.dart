@@ -105,9 +105,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                       image: AssetImage('tiledbackground.jpg'),
                       scale: 1.25,
                       colorFilter: ColorFilter.mode(
-        Colors.black.withOpacity(.8), // Adjust opacity here
-        BlendMode.dstATop, // Or other BlendMode for different effects
-      ),
+                       Colors.black.withOpacity(.8), // Adjust opacity here
+                        BlendMode.dstATop, // Or other BlendMode for different effects
+                      ),
                       repeat: ImageRepeat.repeat,
                     ),
                   ),
@@ -118,7 +118,151 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                   controller: _tabController,
                   children: [
                     //tab 1
-                    Center(child: Text('Home Content')),
+                    SingleChildScrollView(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                      SizedBox(height: 25),
+                          Container(
+                            width: 400,
+                            height: 75,
+                            alignment: Alignment.center,
+                        padding: const EdgeInsets.all(16.0),
+                        decoration: BoxDecoration(
+                        color: const Color.fromARGB(240, 255, 255, 255),
+                        border: Border.all(
+                          color: const Color.fromARGB(255, 186, 28, 28),
+                          width: 2.0,
+                          ),
+                        borderRadius: BorderRadius.circular(8.0),
+                        ),
+                          child: Text('Find Your Recipe',
+                            style: TextStyle(
+                              fontSize: 30,
+                            ),
+                          ),
+                      ),
+                      SizedBox(height: 20),
+                      Row (
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 300,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              border: Border.all(
+                                color: const Color.fromARGB(255, 186, 28, 28),
+                                width: 2.0,
+                              ),
+                              borderRadius: BorderRadius.circular(8.0),
+                            ),
+                            child: TextField(
+                              decoration: InputDecoration(
+                                hintText: 'Search recipes...',
+                                contentPadding: EdgeInsets.symmetric(horizontal: 10.0),
+                                border: InputBorder.none,
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 10),
+                          ElevatedButton(
+                            onPressed: () {
+                              // Implement search functionality
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color.fromARGB(255, 188, 44, 44),
+                            ),
+                            child: Text('Search'),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 20),
+                      Row (
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          InkWell (
+                            onTap: () {
+                              // Handle tap event
+                            },
+                          child: Container(
+                            padding: EdgeInsets.all(8.0),
+                            width: 250,
+                            height: 220,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              border: Border.all(
+                                color: const Color.fromARGB(255, 186, 28, 28),
+                                width: 2.0,
+                              ),
+                              borderRadius: BorderRadius.circular(8.0),
+                            ),
+                            child: Column(
+                              children: [
+                                Image.asset(
+                                  'sample.jpg',
+                                  width: 180,
+                                  height: 150,
+                                  fit: BoxFit.cover,
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Text(
+                                    'Sample',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          ),
+                          SizedBox(width: 10),
+                          InkWell (
+                            onTap: () {
+                              // Handle tap event
+                            },
+                          child: Container(
+                            padding: EdgeInsets.all(8.0),
+                            width: 250,
+                            height: 220,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              border: Border.all(
+                                color: const Color.fromARGB(255, 186, 28, 28),
+                                width: 2.0,
+                              ),
+                              borderRadius: BorderRadius.circular(8.0),
+                            ),
+                            child: Column(
+                              children: [
+                                Image.asset(
+                                  'sample.jpg',
+                                  width: 180,
+                                  height: 150,
+                                  fit: BoxFit.cover,
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Text(
+                                    'Sample',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          ),
+                        ],
+                      )
+                  ],
+                ),
+                    ),
                     //tab 2
                     Center(child: Text('Settings Content')),
                     //tab 3
