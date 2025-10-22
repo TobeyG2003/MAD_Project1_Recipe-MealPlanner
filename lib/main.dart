@@ -178,98 +178,31 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                         ],
                       ),
                       SizedBox(height: 20),
-                      Row (
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          InkWell (
-                            onTap: () {
-                              // Handle tap event
-                            },
-                          child: Container(
-                            padding: EdgeInsets.all(8.0),
-                            width: 250,
-                            height: 220,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              border: Border.all(
-                                color: const Color.fromARGB(255, 186, 28, 28),
-                                width: 2.0,
-                              ),
-                              borderRadius: BorderRadius.circular(8.0),
-                            ),
-                            child: Column(
-                              children: [
-                                Image.asset(
-                                  'sample.jpg',
-                                  width: 180,
-                                  height: 150,
-                                  fit: BoxFit.cover,
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Text(
-                                    'Sample',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          ),
-                          SizedBox(width: 10),
-                          InkWell (
-                            onTap: () {
-                              // Handle tap event
-                            },
-                          child: Container(
-                            padding: EdgeInsets.all(8.0),
-                            width: 250,
-                            height: 220,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              border: Border.all(
-                                color: const Color.fromARGB(255, 186, 28, 28),
-                                width: 2.0,
-                              ),
-                              borderRadius: BorderRadius.circular(8.0),
-                            ),
-                            child: Column(
-                              children: [
-                                Image.asset(
-                                  'sample.jpg',
-                                  width: 180,
-                                  height: 150,
-                                  fit: BoxFit.cover,
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Text(
-                                    'Sample',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          ),
+                      SizedBox(
+                        width: 500,
+                      child: GridView.count (
+                        crossAxisCount: 2,
+                        mainAxisSpacing: 10,
+                        crossAxisSpacing: 10,
+                        childAspectRatio: 1.1,
+                        shrinkWrap: true,
+                        children: [ //will create function to create cards from all recies in database
+                          generateCard(name: 'Sample'),
+                          generateCard(name: 'Sample'),
+                          generateCard(name: 'Sample'),
                         ],
-                      )
+                      ),
+                      ),
                   ],
                 ),
                     ),
-                    //tab 2
-                    Center(child: Text('Settings Content')),
-                    //tab 3
-                    Center(child: Text('Profile Content')),
-                    //tab 4
-                    Center(child: Text('Notifications Content')),
-                    //tab 5
+                    //tab 2 recipes
+                    Center(child: Text('Recipes Content')),
+                    //tab 3 planner
+                    Center(child: Text('Planner Content')),
+                    //tab 4 favorites, basically same stuff as recipes
+                    Center(child: Text('Favorites Content')),
+                    //tab 5 grocery list
                     Center(child: Text('Info Content')),
                   ],
                 ),
@@ -279,5 +212,54 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         },
       ),
     );
+  }
+}
+
+class generateCard extends StatelessWidget {
+  String name;
+  generateCard({super.key, required this.name});
+  @override
+  Widget build(BuildContext context) {
+    return InkWell (
+      onTap: () {
+        // Handle tap event
+      },
+      child: Container(
+      padding: EdgeInsets.all(8.0),
+      width: 250,
+      height: 200,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(
+          color: const Color.fromARGB(255, 186, 28, 28),
+          width: 2.0,
+        ),
+        borderRadius: BorderRadius.circular(8.0),
+      ),
+      child: Column(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10.0),
+            child: Image.asset(
+              '${name.toLowerCase()}.jpg',
+              width: 180,
+              height: 150,
+              fit: BoxFit.cover,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              name,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
   }
 }
