@@ -9,6 +9,6 @@ Application - Changes setting of tab index to be animated to, resulting in the c
 Reflection - This showed me how to adjust the way the index value in the tab controller is changed, making its change in value smooth if needed for purposes such as animating the background as well as how certain widgets might function outside of the screen view and how to ensure they behave properly when shifitng them into view.
 -------------
 Date - 10/22/25 - Amara Irobi
-Question - How to make sure ingredients and instructions are in a numbered list when viewing recipe details?
-Application - Turns the lists into a map with keys and values that can be accessed using .entries. The entries are then looped through, the numbering starts at 1, and the instructions are assigned as the values in the map.
+Question - How to make sure ingredients and  instructions are in a numbered/bulleteted list when viewing recipe details?
+Application - Turns the lists into a map with keys and values that can be accessed using .entries. The entries are then looped through, the numbering starts at 1, and the instructions are assigned as the values in the map. The ingredients are also iterated through, and text widgets are made for each one.
 Reflection - This showed me how to easily display data from a list by using keys and values, as well as aligning the text widget itself.
