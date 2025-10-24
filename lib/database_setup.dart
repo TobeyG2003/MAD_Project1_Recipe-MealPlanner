@@ -9,6 +9,7 @@ class DatabaseHelper {
   static const recipename = 'name';
   static const recipedescription = 'description';
   static const recipeimageUrl = 'imageURl';
+  static const recipefavorite = 'isFavorite';
 
   static const tagid = 'id';
   static const tagname = 'name';
@@ -76,11 +77,12 @@ $recipeid INTEGER PRIMARY KEY,
 $recipename TEXT,
 $recipedescription TEXT,
 $recipeimageUrl TEXT
+$recipefavorite INTEGER DEFAULT 0
 )
 ''');
-await db.insert('recipesstable', {'name': 'sample1', 'description': 'sample desc.', 'imageURL': 'sample.jpg', });
-await db.insert('recipesstable', {'name': 'sample2', 'description': 'sample desc.', 'imageURL': 'sample.jpg', });
-await db.insert('recipesstable', {'name': 'sample3', 'description': 'sample desc.', 'imageURL': 'sample.jpg', });
+await db.insert('recipesstable', {'name': 'sample1', 'description': 'sample desc.', 'imageURL': 'sample.jpg', 'favorite': 0, });
+await db.insert('recipesstable', {'name': 'sample2', 'description': 'sample desc.', 'imageURL': 'sample.jpg', 'favorite': 0, });
+await db.insert('recipesstable', {'name': 'sample3', 'description': 'sample desc.', 'imageURL': 'sample.jpg', 'favorite': 0, });
   }
 Future _onCreateTags(Database db, int version) async {
     await db.execute('''
