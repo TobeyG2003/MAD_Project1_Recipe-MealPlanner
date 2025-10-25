@@ -12,3 +12,8 @@ Date - 10/22/25 - Amara Irobi
 Question - How to make sure ingredients and  instructions are in a numbered/bulleteted list when viewing recipe details?
 Application - Turns the lists into a map with keys and values that can be accessed using .entries. The entries are then looped through, the numbering starts at 1, and the instructions are assigned as the values in the map. The ingredients are also iterated through, and text widgets are made for each one.
 Reflection - This showed me how to easily display data from a list by using keys and values, as well as aligning the text widget itself.
+-------------
+Date - 10/25/25 - Tobey Gray
+Question - Modify queryitemswithfilters to wrok with the tags and recipe tags being stored in seperate tables
+Application - Creates a list of conditions & arguments to add to to build a query string, adding as need be to account for use of filters/search, using INNER JOIN to select corresponding rows between tables and SELECTing from the recipe database with the previously created conditions/arguments lists to fill the WHERE clause.
+Reflection - This showed how to join together not only tables in the rows where they are equal, but also how to join together a set of arguments to filter results down in a table.
