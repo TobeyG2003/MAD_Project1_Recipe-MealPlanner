@@ -17,3 +17,10 @@ Date - 10/25/25 - Tobey Gray
 Question - Modify queryitemswithfilters to wrok with the tags and recipe tags being stored in seperate tables
 Application - Creates a list of conditions & arguments to add to to build a query string, adding as need be to account for use of filters/search, using INNER JOIN to select corresponding rows between tables and SELECTing from the recipe database with the previously created conditions/arguments lists to fill the WHERE clause.
 Reflection - This showed how to join together not only tables in the rows where they are equal, but also how to join together a set of arguments to filter results down in a table.
+-------------
+Date - 10/25/25 - Tobey Gray
+Question - Why am I getting error The following _TypeError was thrown building LayoutBuilder:
+type 'Future<List<Map<String, dynamic>>>' is not a subtype of type 'List<Map<String, dynamic>>' in
+type cast
+Application - Initializes recipesList as a Future<List<Map<String>>>, initializes dbHelper and assigns it, and uses a FutureBuilder with the gridview to wait for the query to complete
+Reflection - This shows how to adjust the initializing of a list as well as building of content/UI when dealing with async functions.

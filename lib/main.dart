@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/material.dart';
-import 'package:path/path.dart';
-import 'package:sqflite/sqlite_api.dart';
 import 'database_setup.dart';
 import 'dart:async';
 import 'screens/recipe_details.dart';
@@ -41,6 +38,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   late TabController _tabController;
 
   int? selectedRecipeId; // for when a recipe is selected, it knows what id to pull up in the recipes tab
+  List<String> tags = []; // list of tags for filtering recipes)
+  // Initialize with an empty list future so build can run before DB init completes.
+  Future<List<Map<String, dynamic>>> recipesList = Future.value([]);
 
       @override
       void initState() {
@@ -51,6 +51,12 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           
         });
       });
+        // Initialize the database helper and load initial recipes
+        dbHelper.init().then((_) {
+          recipesList = dbHelper.queryItemsWithFilters('', []);
+          setState(() {});
+        });
+        
       }
 
       @override
@@ -112,8 +118,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 child: Container(
                   width: wideWidth,
                   decoration: BoxDecoration(
-                    image: DecorationImage(
-                      image: AssetImage('tiledbackground.jpg'),
+                      image: DecorationImage(
+                      image: AssetImage('assets/tiledbackground.jpg'),
                       scale: 1.25,
                       colorFilter: ColorFilter.mode(
                        Colors.black.withOpacity(.8), // Adjust opacity here
@@ -174,6 +180,11 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                 contentPadding: EdgeInsets.symmetric(horizontal: 10.0),
                                 border: InputBorder.none,
                               ),
+                              onChanged: (text) {
+                                setState(() {
+                                  recipesList = dbHelper.queryItemsWithFilters(text, tags);
+                                });
+                              },
                             ),
                           ),
                           SizedBox(width: 10),
@@ -191,18 +202,34 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                       SizedBox(height: 20),
                       SizedBox(
                         width: 500,
-                      child: GridView.count (
-                        crossAxisCount: 2,
-                        mainAxisSpacing: 10,
-                        crossAxisSpacing: 10,
-                        childAspectRatio: 1.1,
-                        shrinkWrap: true,
-                        children: [ // will create function to create cards from all recies in database
-                          generateCard(recipeId: 1, name: 'Sample'),
-                          generateCard(recipeId: 2, name: 'Sample'),
-                          generateCard(recipeId: 3, name: 'Sample'),
-                        ],
-                      ),
+                        child: FutureBuilder<List<Map<String, dynamic>>>(
+                          future: recipesList,
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState == ConnectionState.waiting) {
+                              return const Center(child: CircularProgressIndicator());
+                            }
+                            if (snapshot.hasError) {
+                              return Center(child: Text('Error: ${snapshot.error}'));
+                            }
+                            final data = snapshot.data ?? [];
+                            if (data.isEmpty) {
+                              return const Center(child: Text('No recipes found'));
+                            }
+                            return GridView.count(
+                              crossAxisCount: 2,
+                              mainAxisSpacing: 10,
+                              crossAxisSpacing: 10,
+                              childAspectRatio: 1.1,
+                              shrinkWrap: true,
+                              children: [ // will create function to create cards from all recies in database
+                                for (var recipe in data)
+                                  generateCard(
+                                    recipeId: recipe['id'],
+                                    name: recipe['name']),
+                              ],
+                            );
+                          },
+                        ),
                       ),
                   ],
                 ),
@@ -236,7 +263,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
 class generateCard extends StatelessWidget {
   final int recipeId;
-  String name;
+  final String name;
   generateCard({super.key, required this.recipeId, required this.name});
   @override
   Widget build(BuildContext context) {
@@ -266,9 +293,9 @@ class generateCard extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(10.0),
             child: Image.asset(
-              '${name.toLowerCase()}.jpg',
-              width: 180,
-              height: 150,
+              'assets/${name.toLowerCase()}.jpg',
+              width: 150,
+              height: 120,
               fit: BoxFit.cover,
             ),
           ),

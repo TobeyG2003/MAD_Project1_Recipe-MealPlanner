@@ -91,9 +91,10 @@ $recipeimageUrl TEXT,
 $recipefavorite INTEGER DEFAULT 0
 )
 ''');
-await db.insert('recipestable', {'name': 'sample1', 'description': 'sample desc.', 'imageURL': 'sample.jpg', 'favorite': 0, });
-await db.insert('recipestable', {'name': 'sample2', 'description': 'sample desc.', 'imageURL': 'sample.jpg', 'favorite': 0, });
-await db.insert('recipestable', {'name': 'sample3', 'description': 'sample desc.', 'imageURL': 'sample.jpg', 'favorite': 0, });
+  // Use the column constants to avoid mismatched keys
+  await db.insert('recipestable', {recipename: 'sample1', recipedescription: 'sample desc.', recipeimageUrl: 'sample1.jpg', recipefavorite: 0});
+  await db.insert('recipestable', {recipename: 'sample2', recipedescription: 'sample desc.', recipeimageUrl: 'sample2.jpg', recipefavorite: 0});
+  await db.insert('recipestable', {recipename: 'sample3', recipedescription: 'sample desc.', recipeimageUrl: 'sample3.jpg', recipefavorite: 0});
   }
 Future _onCreateTags(Database db, int version) async {
     await db.execute('''
