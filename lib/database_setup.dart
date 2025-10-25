@@ -28,11 +28,16 @@ class DatabaseHelper {
   static const instructiondescription = 'description';
   static const instructionrecipeID = 'recipeId';
 
+  static const mealid = 'id';
+  static const mealrecipieID = 'recipeId';
+  static const mealdate = 'date';
+
   late Database recipesdb;
   late Database tagsdb;
   late Database recipetagsdb;
   late Database ingredientsdb;
   late Database instructionsdb;
+  late Database mealsdb;
 
 // this opens the database (and creates it if it doesn't exist)
   Future<void> init() async {
@@ -42,6 +47,7 @@ class DatabaseHelper {
     final path3 = join(documentsDirectory.path, 'myrecipetags.db');
     final path4 = join(documentsDirectory.path, 'myingredients.db');
     final path5 = join(documentsDirectory.path, 'myinstructions.db');
+    final path6 = join(documentsDirectory.path, 'mymeals.db');
     recipesdb = await openDatabase(
       path,
       version: _databaseVersion,
@@ -67,6 +73,11 @@ class DatabaseHelper {
       version: _databaseVersion,
       onCreate: _onCreateInstructions,
     );
+    mealsdb = await openDatabase(
+      path6,
+      version: _databaseVersion,
+      onCreate: _onCreateMeals,
+    );
   }
 
 // SQL code to create the database table
@@ -76,13 +87,13 @@ CREATE TABLE 'recipestable' (
 $recipeid INTEGER PRIMARY KEY,
 $recipename TEXT,
 $recipedescription TEXT,
-$recipeimageUrl TEXT
+$recipeimageUrl TEXT,
 $recipefavorite INTEGER DEFAULT 0
 )
 ''');
-await db.insert('recipesstable', {'name': 'sample1', 'description': 'sample desc.', 'imageURL': 'sample.jpg', 'favorite': 0, });
-await db.insert('recipesstable', {'name': 'sample2', 'description': 'sample desc.', 'imageURL': 'sample.jpg', 'favorite': 0, });
-await db.insert('recipesstable', {'name': 'sample3', 'description': 'sample desc.', 'imageURL': 'sample.jpg', 'favorite': 0, });
+await db.insert('recipestable', {'name': 'sample1', 'description': 'sample desc.', 'imageURL': 'sample.jpg', 'favorite': 0, });
+await db.insert('recipestable', {'name': 'sample2', 'description': 'sample desc.', 'imageURL': 'sample.jpg', 'favorite': 0, });
+await db.insert('recipestable', {'name': 'sample3', 'description': 'sample desc.', 'imageURL': 'sample.jpg', 'favorite': 0, });
   }
 Future _onCreateTags(Database db, int version) async {
     await db.execute('''
@@ -142,18 +153,106 @@ await db.insert('instructionstable', {'description': 'Step 2 description', 'step
 await db.insert('instructionstable', {'description': 'Step 1 description', 'stepNumber': 1, 'recipeId': 2,});
 await db.insert('instructionstable', {'description': 'Step 1 description', 'stepNumber': 1, 'recipeId': 3,});
   }
+Future _onCreateMeals(Database db, int version) async {
+    await db.execute('''
+CREATE TABLE 'mealstable' (
+$mealid INTEGER PRIMARY KEY,
+$mealrecipieID INTEGER,
+$mealdate TEXT,
+FOREIGN KEY ($mealrecipieID) REFERENCES recipestable($recipeid) ON DELETE CASCADE
+)
+''');
+  }
+  
   /*Future<int> insertcard(Map<String, dynamic> row) async {
     return await cardsdb.insert('cardstable', row);
+  }*/
+
+  Future<bool> getFavoriteStatus(int id) async {
+    final List<Map<String, dynamic>> result = await recipesdb.query(
+      'recipestable',
+      columns: [recipefavorite],
+      where: '$recipeid = ?',
+      whereArgs: [id],
+    );
+    if (result.isNotEmpty) {
+      return result.first[recipefavorite] == 1;
+    }
+    return false;
   }
-  Future<int> updatecard(Map<String, dynamic> row) async {
-    int id = row[cardid];
-    return await cardsdb.update(
-      'cardstable',
-      row,
-      where: '$cardid = ?',
+
+  Future<int> toggleFavorite(int id) async {
+    bool currentStatus = await getFavoriteStatus(id);
+    return await recipesdb.update(
+      'recipestable',
+      {
+        recipefavorite: currentStatus ? 1 : 0,
+      },
+      where: '$recipeid = ?',
       whereArgs: [id],
     );
   }
+
+  Future<List<Map<String, dynamic>>> getFavoriteRecipes() async {
+    return await recipesdb.query(
+      'recipestable',
+      where: '$recipefavorite = ?',
+      whereArgs: [1],
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> queryItemsWithFilters(String nameSearch, List<String> tags) async {
+    // Build the base query
+    String query = '''
+      SELECT DISTINCT r.$recipeid, r.$recipename, r.$recipedescription, 
+                     r.$recipeimageUrl, r.$recipefavorite
+      FROM recipestable r
+    ''';
+
+    List<dynamic> whereArgs = [];
+    List<String> conditions = [];
+
+    // Add name search condition if provided
+    if (nameSearch.isNotEmpty) {
+      conditions.add('r.$recipename LIKE ?');
+      whereArgs.add('%$nameSearch%');
+    }
+
+    // Add tag filtering if tags are provided
+    if (tags.isNotEmpty) {
+      // Join with recipe_tags and tags tables
+      query += '''
+        INNER JOIN recipetagstable rt ON r.$recipeid = rt.$recipetagrecipeID
+        INNER JOIN tagstable t ON rt.$recipetagtagID = t.$tagid
+      ''';
+      
+      // Add tag condition
+      final tagPlaceholders = List.filled(tags.length, '?').join(',');
+      conditions.add('t.$tagname IN ($tagPlaceholders)');
+      whereArgs.addAll(tags);
+
+      // Group by recipe ID to ensure we don't get duplicates
+      query += '\nGROUP BY r.$recipeid';
+      
+      // If multiple tags are provided, ensure all tags are matched
+      if (tags.length > 1) {
+        query += '\nHAVING COUNT(DISTINCT t.$tagid) = ${tags.length}';
+      }
+    }
+
+    // Add WHERE clause if we have conditions
+    if (conditions.isNotEmpty) {
+      query += '\nWHERE ' + conditions.join(' AND ');
+    }
+
+    // Execute the query
+    final List<Map<String, dynamic>> results = await recipesdb.rawQuery(query, whereArgs);
+    return results;
+  }
+
+
+  
+  /*
   Future<int> delete(int id) async {
     return await cardsdb.delete(
       'cardstable',

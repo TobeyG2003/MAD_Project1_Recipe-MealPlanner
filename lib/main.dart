@@ -1,4 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:path/path.dart';
+import 'package:sqflite/sqlite_api.dart';
+import 'database_setup.dart';
+import 'dart:async';
+
+final dbHelper = DatabaseHelper();
 
 void main() {
   runApp(const MyApp());
@@ -117,7 +124,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 child: TabBarView(
                   controller: _tabController,
                   children: [
-                    //tab 1
+                    //tab 1 recipes
                     SingleChildScrollView(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.start,
