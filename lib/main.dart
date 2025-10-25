@@ -221,11 +221,13 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                               crossAxisSpacing: 10,
                               childAspectRatio: 1.1,
                               shrinkWrap: true,
-                              children: [ // will create function to create cards from all recies in database
+                              children: [
                                 for (var recipe in data)
                                   generateCard(
                                     recipeId: recipe['id'],
-                                    name: recipe['name']),
+                                    name: recipe['name'],
+                                    recipeimageUrl: recipe['imageUrl'],
+                                  )
                               ],
                             );
                           },
@@ -264,7 +266,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 class generateCard extends StatelessWidget {
   final int recipeId;
   final String name;
-  generateCard({super.key, required this.recipeId, required this.name});
+  final String recipeimageUrl;
+  generateCard({super.key, required this.recipeId, required this.name, required this.recipeimageUrl});
   @override
   Widget build(BuildContext context) {
     return InkWell (
@@ -293,7 +296,7 @@ class generateCard extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(10.0),
             child: Image.asset(
-              'assets/${name.toLowerCase()}.jpg',
+              recipeimageUrl,
               width: 150,
               height: 120,
               fit: BoxFit.cover,

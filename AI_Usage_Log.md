@@ -24,3 +24,8 @@ type 'Future<List<Map<String, dynamic>>>' is not a subtype of type 'List<Map<Str
 type cast
 Application - Initializes recipesList as a Future<List<Map<String>>>, initializes dbHelper and assigns it, and uses a FutureBuilder with the gridview to wait for the query to complete
 Reflection - This shows how to adjust the initializing of a list as well as building of content/UI when dealing with async functions.
+
+Date - 10/25/25 - Tobey Gray
+Question - How to add up the quantity of ingredients from meals table
+Application - Gets the list of recipeIDs in the meal planner, from which it gets the list of ingredients for each recipeID. For each recipe, for each row of the ingredients list, add them to a map.
+Reflection - I was on the right track retrieving and searching with IDs, but wasn't sure how to add/store without creating duplicates in the list. This showed how to use the column names as keys to map so that for example 'beef' 'lbs' is stored but the 'qty' can be increased as rows containing 'beef' 'lbs' are added without creating duplicate entries. (note, 'beef' 'kg' would still appear)

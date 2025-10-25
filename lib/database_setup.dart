@@ -92,9 +92,9 @@ $recipefavorite INTEGER DEFAULT 0
 )
 ''');
   // Use the column constants to avoid mismatched keys
-  await db.insert('recipestable', {recipename: 'sample1', recipedescription: 'sample desc.', recipeimageUrl: 'sample1.jpg', recipefavorite: 0});
-  await db.insert('recipestable', {recipename: 'sample2', recipedescription: 'sample desc.', recipeimageUrl: 'sample2.jpg', recipefavorite: 0});
-  await db.insert('recipestable', {recipename: 'sample3', recipedescription: 'sample desc.', recipeimageUrl: 'sample3.jpg', recipefavorite: 0});
+  await db.insert('recipestable', {recipename: 'sample1', recipedescription: 'sample desc.', recipeimageUrl: 'assets/sample1.jpg', recipefavorite: 0});
+  await db.insert('recipestable', {recipename: 'sample2', recipedescription: 'sample desc.', recipeimageUrl: 'assets/sample2.jpg', recipefavorite: 0});
+  await db.insert('recipestable', {recipename: 'sample3', recipedescription: 'sample desc.', recipeimageUrl: 'assets/sample3.jpg', recipefavorite: 0});
   }
 Future _onCreateTags(Database db, int version) async {
     await db.execute('''
@@ -163,6 +163,13 @@ $mealdate TEXT,
 FOREIGN KEY ($mealrecipieID) REFERENCES recipestable($recipeid) ON DELETE CASCADE
 )
 ''');
+await db.insert('mealstable', {'recipeId': null, 'date': 'Sunday',});
+await db.insert('mealstable', {'recipeId': null, 'date': 'Monday',});
+await db.insert('mealstable', {'recipeId': null, 'date': 'Tuesday',});
+await db.insert('mealstable', {'recipeId': null, 'date': 'Wednesday',});
+await db.insert('mealstable', {'recipeId': null, 'date': 'Thursday',});
+await db.insert('mealstable', {'recipeId': null, 'date': 'Friday',});
+await db.insert('mealstable', {'recipeId': null, 'date': 'Saturday',});
   }
   
   /*Future<int> insertcard(Map<String, dynamic> row) async {
@@ -194,15 +201,15 @@ FOREIGN KEY ($mealrecipieID) REFERENCES recipestable($recipeid) ON DELETE CASCAD
     );
   }
 
-  Future<List<Map<String, dynamic>>> getFavoriteRecipes() async {
+  /*Future<List<Map<String, dynamic>>> getFavoriteRecipes() async {
     return await recipesdb.query(
       'recipestable',
       where: '$recipefavorite = ?',
       whereArgs: [1],
     );
-  }
+  }*/
 
-  Future<List<Map<String, dynamic>>> queryItemsWithFilters(String nameSearch, List<String> tags) async {
+  Future<List<Map<String, dynamic>>> queryItemsWithFilters(String nameSearch, List<String> tags, {bool? onlyFavorites}) async {
     // Build the base query
     String query = '''
       SELECT DISTINCT r.$recipeid, r.$recipename, r.$recipedescription, 
@@ -217,6 +224,11 @@ FOREIGN KEY ($mealrecipieID) REFERENCES recipestable($recipeid) ON DELETE CASCAD
     if (nameSearch.isNotEmpty) {
       conditions.add('r.$recipename LIKE ?');
       whereArgs.add('%$nameSearch%');
+    }
+
+    // Add favorites filter if requested
+    if (onlyFavorites == true) {
+      conditions.add('r.$recipefavorite = 1');
     }
 
     // Add tag filtering if tags are provided
@@ -250,6 +262,114 @@ FOREIGN KEY ($mealrecipieID) REFERENCES recipestable($recipeid) ON DELETE CASCAD
     final List<Map<String, dynamic>> results = await recipesdb.rawQuery(query, whereArgs);
     return results;
   }
+
+  Future <List<Map<String, dynamic>>> getAllTags() async {
+    return await tagsdb.query('tagstable');
+  }
+  Future<int> updateMeal(int mealId, int? recipeId) async {
+    return await mealsdb.update(
+      'mealstable',
+      {
+        mealrecipieID: recipeId,
+      },
+      where: '$mealid = ?',
+      whereArgs: [mealId],
+    );
+  }
+  Future<List<Map<String,dynamic>>> getRecipebyID(int recipeId) async {
+    return await recipesdb.query(
+      'recipestable',
+      where: '$recipeid = ?',
+      whereArgs: [recipeId],
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getRecipesfromMeals() async {
+    return await mealsdb.rawQuery('''
+      SELECT m.$mealid, m.$mealdate, r.$recipeid, r.$recipename, r.$recipeimageUrl
+      FROM mealstable m
+      LEFT JOIN recipestable r ON m.$mealrecipieID = r.$recipeid
+      ORDER BY 
+        CASE m.$mealdate
+          WHEN 'Sunday' THEN 1
+          WHEN 'Monday' THEN 2
+          WHEN 'Tuesday' THEN 3
+          WHEN 'Wednesday' THEN 4
+          WHEN 'Thursday' THEN 5
+          WHEN 'Friday' THEN 6
+          WHEN 'Saturday' THEN 7
+        END
+    ''');
+  }
+  Future<List<Map<String, dynamic>>> getInstructionsforRecipe(int recipeId) async {
+    return await instructionsdb.query(
+      'instructionstable',
+      where: '$instructionrecipeID = ?',
+      whereArgs: [recipeId],
+      orderBy: '$instructionstepNumber ASC',
+    );
+  }
+  Future<List<Map<String, dynamic>>> getIngredientsforRecipe(int recipeId) async {
+    return await ingredientsdb.query(
+      'ingredientstable',
+      where: '$ingredientrecipeID = ?',
+      whereArgs: [recipeId],
+    );
+  }
+  Future<List<Map<String, dynamic>>> getGrocerylistfromallMeals() async {
+    // Note: ingredients are stored in `ingredientsdb` while meals are stored in `mealsdb`.
+    // You cannot JOIN tables across separate sqlite database connections. Instead,
+    // fetch the planned meals from the meals database, then load ingredients from
+    // the ingredients database and aggregate quantities in Dart.
+
+    final List<Map<String, dynamic>> meals = await mealsdb.query(
+      'mealstable',
+      columns: [mealrecipieID],
+    );
+
+    if (meals.isEmpty) return [];
+
+    // Map key = '$name|$unit' -> { 'name': name, 'unit': unit, 'quantity': double }
+    final Map<String, Map<String, dynamic>> totals = {};
+
+    for (final meal in meals) {
+      final recipeId = meal[mealrecipieID];
+      if (recipeId == null) continue;
+
+      final List<Map<String, dynamic>> ingredients = await ingredientsdb.query(
+        'ingredientstable',
+        where: '$ingredientrecipeID = ?',
+        whereArgs: [recipeId],
+      );
+
+        for (final ing in ingredients) {
+          final String name = (ing[ingredientname] ?? '').toString();
+          final String unit = (ing[ingredientunit] ?? '').toString();
+          final dynamic rawQty = ing[ingredientquantity] ?? 0;
+          final double qty = rawQty is num
+              ? rawQty.toDouble()
+              : double.tryParse(rawQty.toString()) ?? 0.0;
+
+          final key = '$name|$unit';
+          if (!totals.containsKey(key)) {
+            totals[key] = {'name': name, 'unit': unit, 'quantity': 0.0};
+          }
+          totals[key]!['quantity'] = (totals[key]!['quantity'] as double) + qty;
+      }
+    }
+
+    // Convert to the expected list format
+    final List<Map<String, dynamic>> result = totals.values.map((entry) {
+      return {
+        ingredientname: entry['name'],
+        'totalQuantity': entry['quantity'],
+        ingredientunit: entry['unit'],
+      };
+    }).toList();
+
+    return result;
+  }
+
 
 
   
