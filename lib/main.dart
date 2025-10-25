@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'screens/recipe_details.dart';
+import 'screens/planner_screens.dart';
 
 void main() {
   runApp(const MyApp());
@@ -30,6 +32,8 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   late TabController _tabController;
+
+  int? selectedRecipeId; // for when a recipe is selected, it knows what id to pull up in the recipes tab
 
       @override
       void initState() {
@@ -186,20 +190,28 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                         crossAxisSpacing: 10,
                         childAspectRatio: 1.1,
                         shrinkWrap: true,
-                        children: [ //will create function to create cards from all recies in database
-                          generateCard(name: 'Sample'),
-                          generateCard(name: 'Sample'),
-                          generateCard(name: 'Sample'),
+                        children: [ // will create function to create cards from all recies in database
+                          generateCard(recipeId: 1, name: 'Sample'),
+                          generateCard(recipeId: 2, name: 'Sample'),
+                          generateCard(recipeId: 3, name: 'Sample'),
                         ],
                       ),
                       ),
                   ],
                 ),
                     ),
-                    //tab 2 recipes
-                    Center(child: Text('Recipes Content')),
+                    // tab 2 recipes, shows generic message until user presses on recipe on homepage
+                    selectedRecipeId == null
+                      ? const Center(
+                        child: Text(
+                            'Select a recipe to view details',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                          ),
+                        )
+                      : RecipeDetailScreen(recipeId: selectedRecipeId!),
+
                     //tab 3 planner
-                    Center(child: Text('Planner Content')),
+                    MealPlannerScreen(),
                     //tab 4 favorites, basically same stuff as recipes
                     Center(child: Text('Favorites Content')),
                     //tab 5 grocery list
@@ -216,13 +228,19 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 }
 
 class generateCard extends StatelessWidget {
+  final int recipeId;
   String name;
-  generateCard({super.key, required this.name});
+  generateCard({super.key, required this.recipeId, required this.name});
   @override
   Widget build(BuildContext context) {
     return InkWell (
-      onTap: () {
-        // Handle tap event
+      onTap: () { // when card is tapped, goes to recipe details screen depending on id
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => RecipeDetailScreen(recipeId: recipeId),
+          ),
+        );
       },
       child: Container(
       padding: EdgeInsets.all(8.0),

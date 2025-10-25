@@ -76,19 +76,19 @@ CREATE TABLE 'recipestable' (
 $recipeid INTEGER PRIMARY KEY,
 $recipename TEXT,
 $recipedescription TEXT,
-$recipeimageUrl TEXT
+$recipeimageUrl TEXT,
 $recipefavorite INTEGER DEFAULT 0
 )
 ''');
-await db.insert('recipesstable', {'name': 'sample1', 'description': 'sample desc.', 'imageURL': 'sample.jpg', 'favorite': 0, });
-await db.insert('recipesstable', {'name': 'sample2', 'description': 'sample desc.', 'imageURL': 'sample.jpg', 'favorite': 0, });
-await db.insert('recipesstable', {'name': 'sample3', 'description': 'sample desc.', 'imageURL': 'sample.jpg', 'favorite': 0, });
+await db.insert('recipestable', {'name': 'sample1', 'description': 'sample desc.', 'imageURL': 'sample.jpg', 'favorite': 0, });
+await db.insert('recipestable', {'name': 'sample2', 'description': 'sample desc.', 'imageURL': 'sample.jpg', 'favorite': 0, });
+await db.insert('recipestable', {'name': 'sample3', 'description': 'sample desc.', 'imageURL': 'sample.jpg', 'favorite': 0, });
   }
 Future _onCreateTags(Database db, int version) async {
     await db.execute('''
 CREATE TABLE 'tagstable' (
 $tagid INTEGER PRIMARY KEY,
-$tagname TEXT,
+$tagname TEXT
 )
 ''');
 await db.insert('tagstable', {'name': 'Vegetarian', });
@@ -102,7 +102,7 @@ await db.insert('tagstable', {'name': 'Spicy', });
 CREATE TABLE 'recipetagstable' (
 $recipetagrecipeID INTEGER NOT NULL,
 $recipetagtagID INTEGER NOT NULL,
-PRIMARY KEY ($recipetagrecipeID, $recipetagtagID)
+PRIMARY KEY ($recipetagrecipeID, $recipetagtagID),
 FOREIGN KEY ($recipetagrecipeID) REFERENCES recipestable($recipeid) ON DELETE CASCADE,
 FOREIGN KEY ($recipetagtagID) REFERENCES tagstable($tagid) ON DELETE CASCADE
 )
