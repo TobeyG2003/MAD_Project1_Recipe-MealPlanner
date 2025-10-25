@@ -99,7 +99,7 @@ Future _onCreateTags(Database db, int version) async {
     await db.execute('''
 CREATE TABLE 'tagstable' (
 $tagid INTEGER PRIMARY KEY,
-$tagname TEXT,
+$tagname TEXT
 )
 ''');
 await db.insert('tagstable', {'name': 'Vegetarian', });
@@ -113,7 +113,7 @@ await db.insert('tagstable', {'name': 'Spicy', });
 CREATE TABLE 'recipetagstable' (
 $recipetagrecipeID INTEGER NOT NULL,
 $recipetagtagID INTEGER NOT NULL,
-PRIMARY KEY ($recipetagrecipeID, $recipetagtagID)
+PRIMARY KEY ($recipetagrecipeID, $recipetagtagID),
 FOREIGN KEY ($recipetagrecipeID) REFERENCES recipestable($recipeid) ON DELETE CASCADE,
 FOREIGN KEY ($recipetagtagID) REFERENCES tagstable($tagid) ON DELETE CASCADE
 )
