@@ -103,10 +103,10 @@ $tagid INTEGER PRIMARY KEY,
 $tagname TEXT
 )
 ''');
-await db.insert('tagstable', {'name': 'Vegetarian', });
-await db.insert('tagstable', {'name': 'Vegan', });
-await db.insert('tagstable', {'name': 'Gluten-Free', });
-await db.insert('tagstable', {'name': 'Spicy', });
+await db.insert('tagstable', {tagname: 'Vegetarian', });
+await db.insert('tagstable', {tagname: 'Vegan', });
+await db.insert('tagstable', {tagname: 'Gluten-Free', });
+await db.insert('tagstable', {tagname: 'Spicy', });
 
   }
   Future _onCreateRecipeTags(Database db, int version) async {
@@ -210,10 +210,11 @@ await db.insert('mealstable', {'recipeId': null, 'date': 'Saturday',});
   }*/
 
   Future<List<Map<String, dynamic>>> queryItemsWithFilters(String nameSearch, List<String> tags, {bool? onlyFavorites}) async {
-    // Build the base query
+
+    // Build base query for recipes
     String query = '''
-      SELECT DISTINCT r.$recipeid, r.$recipename, r.$recipedescription, 
-                     r.$recipeimageUrl, r.$recipefavorite
+      SELECT r.$recipeid, r.$recipename, r.$recipedescription, 
+             r.$recipeimageUrl, r.$recipefavorite
       FROM recipestable r
     ''';
 
@@ -231,35 +232,58 @@ await db.insert('mealstable', {'recipeId': null, 'date': 'Saturday',});
       conditions.add('r.$recipefavorite = 1');
     }
 
-    // Add tag filtering if tags are provided
-    if (tags.isNotEmpty) {
-      // Join with recipe_tags and tags tables
-      query += '''
-        INNER JOIN recipetagstable rt ON r.$recipeid = rt.$recipetagrecipeID
-        INNER JOIN tagstable t ON rt.$recipetagtagID = t.$tagid
-      ''';
-      
-      // Add tag condition
-      final tagPlaceholders = List.filled(tags.length, '?').join(',');
-      conditions.add('t.$tagname IN ($tagPlaceholders)');
-      whereArgs.addAll(tags);
-
-      // Group by recipe ID to ensure we don't get duplicates
-      query += '\nGROUP BY r.$recipeid';
-      
-      // If multiple tags are provided, ensure all tags are matched
-      if (tags.length > 1) {
-        query += '\nHAVING COUNT(DISTINCT t.$tagid) = ${tags.length}';
-      }
-    }
-
     // Add WHERE clause if we have conditions
     if (conditions.isNotEmpty) {
-      query += '\nWHERE ' + conditions.join(' AND ');
+      query = query.replaceFirst('FROM', 'WHERE ${conditions.join(' AND ')}\nFROM');
     }
 
-    // Execute the query
-    final List<Map<String, dynamic>> results = await recipesdb.rawQuery(query, whereArgs);
+    // Execute the query to get base recipe results
+    List<Map<String, dynamic>> results = await recipesdb.rawQuery(query, whereArgs);
+
+    // If tags are specified, filter by tags
+    if (tags.isNotEmpty) {
+      // Get tag IDs for the requested tag names
+      final tagPlaceholders = List.filled(tags.length, '?').join(',');
+      final List<Map<String, dynamic>> tagRows = await tagsdb.rawQuery(
+        'SELECT $tagid FROM tagstable WHERE $tagname IN ($tagPlaceholders)',
+        tags,
+      );
+      
+      final Set<int> requestedTagIds = tagRows
+          .map((row) => row[tagid] as int)
+          .toSet();
+
+      if (requestedTagIds.isEmpty) {
+        return []; // No matching tags found
+      }
+
+      // Filter recipes that have ALL requested tags
+      final List<Map<String, dynamic>> filteredResults = [];
+      
+      for (final recipe in results) {
+        final recipeId = recipe[recipeid] as int;
+        
+        // Get all tags for this recipe
+        final List<Map<String, dynamic>> recipeTagRows = await recipetagsdb.query(
+          'recipetagstable',
+          columns: [recipetagtagID],
+          where: '$recipetagrecipeID = ?',
+          whereArgs: [recipeId],
+        );
+        
+        final Set<int> recipeTagIds = recipeTagRows
+            .map((row) => row[recipetagtagID] as int)
+            .toSet();
+        
+        // Check if recipe has all requested tags
+        if (requestedTagIds.every((tagId) => recipeTagIds.contains(tagId))) {
+          filteredResults.add(recipe);
+        }
+      }
+      
+      return filteredResults;
+    }
+
     return results;
   }
 
@@ -276,6 +300,38 @@ await db.insert('mealstable', {'recipeId': null, 'date': 'Saturday',});
       whereArgs: [mealId],
     );
   }
+  
+  Future<List<Map<String,dynamic>>> getTagsForRecipe(int recipeId) async {
+    // get tagIds from recipetagsdb
+    final List<Map<String, dynamic>> tagIdRows = await recipetagsdb.query(
+      'recipetagstable',
+      columns: [recipetagtagID],
+      where: '$recipetagrecipeID = ?',
+      whereArgs: [recipeId],
+    );
+
+    if (tagIdRows.isEmpty) return [];
+
+//turn into a list of unique ints
+    final List<int> tagIds = tagIdRows
+        .map((r) => r[recipetagtagID])
+        .where((v) => v != null)
+        .map((v) => v as int)
+        .toSet()
+        .toList();
+
+    if (tagIds.isEmpty) return [];
+
+    //query tagsdb for these tagIds
+    final placeholders = List.filled(tagIds.length, '?').join(',');
+    final List<Map<String, dynamic>> tagRows = await tagsdb.rawQuery(
+      'SELECT $tagid, $tagname FROM tagstable WHERE $tagid IN ($placeholders)',
+      tagIds,
+    );
+    
+    return tagRows;
+  }
+
   Future<List<Map<String,dynamic>>> getRecipebyID(int recipeId) async {
     return await recipesdb.query(
       'recipestable',
@@ -317,10 +373,6 @@ await db.insert('mealstable', {'recipeId': null, 'date': 'Saturday',});
     );
   }
   Future<List<Map<String, dynamic>>> getGrocerylistfromallMeals() async {
-    // Note: ingredients are stored in `ingredientsdb` while meals are stored in `mealsdb`.
-    // You cannot JOIN tables across separate sqlite database connections. Instead,
-    // fetch the planned meals from the meals database, then load ingredients from
-    // the ingredients database and aggregate quantities in Dart.
 
     final List<Map<String, dynamic>> meals = await mealsdb.query(
       'mealstable',
@@ -370,28 +422,4 @@ await db.insert('mealstable', {'recipeId': null, 'date': 'Saturday',});
     return result;
   }
 
-
-
-  
-  /*
-  Future<int> delete(int id) async {
-    return await cardsdb.delete(
-      'cardstable',
-      where: '$cardfolderID = ?',
-      whereArgs: [id],
-    );
-  }
-
-  Future<String> getcardimage(int id) async {
-    final result = await cardsdb.query(
-      'cardstable',
-      columns: [cardimageUrl],
-      where: '$cardid = ?',
-      whereArgs: [id],
-    );
-    if (result.isNotEmpty && result[0][cardimageUrl] != null) {
-      return result[0][cardimageUrl] as String;
-    }
-    return '';
-  }*/
 }
