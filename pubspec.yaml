@@ -30,6 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  share_plus: ^7.0.2
+
   sqflite: ^2.0.0+3
   path: ^1.8.0
   # For image picking (optional for bonus)

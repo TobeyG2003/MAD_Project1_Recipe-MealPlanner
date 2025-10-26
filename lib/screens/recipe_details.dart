@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../database_setup.dart';
+import '../main.dart' show dbHelper; // using existing db
+import 'package:share_plus/share_plus.dart';
+
 
 class RecipeDetailScreen extends StatefulWidget {
   final int recipeId;
@@ -8,12 +11,13 @@ class RecipeDetailScreen extends StatefulWidget {
   @override
   State<RecipeDetailScreen> createState() => _RecipeDetailsScreenState();
 }
-  class _RecipeDetailsScreenState extends State<RecipeDetailScreen> {
-    final db = DatabaseHelper();
-    Map<String, dynamic>? recipe;
-    List<Map<String, dynamic>> ingredients = [];
-    List<Map<String, dynamic>> instructions = [];
-    List<Map<String, dynamic>> tags = [];
+
+class _RecipeDetailsScreenState extends State<RecipeDetailScreen> {
+  final db = dbHelper; 
+  Map<String, dynamic>? recipe;
+  List<Map<String, dynamic>> ingredients = [];
+  List<Map<String, dynamic>> instructions = [];
+  List<Map<String, dynamic>> tags = [];
 
   @override
   void initState() {
@@ -22,7 +26,6 @@ class RecipeDetailScreen extends StatefulWidget {
   }
 
   Future<void> _loadData() async {
-    await db.init();
 
     final recipeResult = await db.recipesdb.query(
       'recipestable',
@@ -38,6 +41,7 @@ class RecipeDetailScreen extends StatefulWidget {
       'instructionstable',
       where: 'recipeId = ?',
       whereArgs: [widget.recipeId],
+      orderBy: 'stepNumber ASC', // makes sure it's in order
     );
 
     // getting diet tags using join, making tagstable t and recipetag rt 
@@ -52,6 +56,7 @@ class RecipeDetailScreen extends StatefulWidget {
       recipe = recipeResult.isNotEmpty ? recipeResult.first : null;
       ingredients = ingredientResult;
       instructions = instructionResult;
+      tags = tagResult; // setting tags
     });
   }
 
@@ -77,7 +82,7 @@ class RecipeDetailScreen extends StatefulWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(10),
               child: Image.asset(
-                'assets/images/${recipe!['imageURL']}',
+                recipe!['imageURl'],
                 height: 200,
                 width: double.infinity,
                 fit: BoxFit.cover,
@@ -100,11 +105,22 @@ class RecipeDetailScreen extends StatefulWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                ElevatedButton(onPressed: () {}, child: const Text('Favorite')),
+                ElevatedButton(onPressed: () async {
+                  await db.toggleFavorite(widget.recipeId);
+                  setState((){});
+                }, child: const Text('Favorite'),
+                ),
                 const SizedBox(width: 8),
-                ElevatedButton(onPressed: () {}, child: const Text('Meal Plan')),
+                ElevatedButton(onPressed: () {
+                  Navigator.pop(context, 2);
+                }, child: const Text('Meal Plan')),
                 const SizedBox(width: 8),
-                ElevatedButton(onPressed: () {}, child: const Text('Share')),
+                ElevatedButton(onPressed: () {
+                  Share.share(
+                    'Check out this recipe! ${recipe!['name']}',
+                    subject: 'Recipe from my Recipe App',
+                  );
+                }, child: const Text('Share')),
               ],
             ),
 
@@ -119,7 +135,9 @@ class RecipeDetailScreen extends StatefulWidget {
             const SizedBox(height: 6),
             ...ingredients.map((i) => Align( // creates text widget for every ingredient and puts them on its own line
                   alignment: Alignment.centerLeft,
-                  child: Text('- $i'),
+                  child: Text(
+                    '- ${i['quantity']} ${i['unit']} ${i['name']} ', // ingredient measurements
+                  ),
                 )),
 
             const SizedBox(height: 20),
@@ -136,7 +154,9 @@ class RecipeDetailScreen extends StatefulWidget {
               final step = entry.value;
               return Align(
                 alignment: Alignment.centerLeft,
-                child: Text('$index. $step'),
+                child: Text(
+                  '$index. ${step['description']}', 
+                ),
               );
             }),
           ],

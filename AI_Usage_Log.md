@@ -29,3 +29,13 @@ Date - 10/25/25 - Tobey Gray
 Question - How to add up the quantity of ingredients from meals table
 Application - Gets the list of recipeIDs in the meal planner, from which it gets the list of ingredients for each recipeID. For each recipe, for each row of the ingredients list, add them to a map.
 Reflection - I was on the right track retrieving and searching with IDs, but wasn't sure how to add/store without creating duplicates in the list. This showed how to use the column names as keys to map so that for example 'beef' 'lbs' is stored but the 'qty' can be increased as rows containing 'beef' 'lbs' are added without creating duplicate entries. (note, 'beef' 'kg' would still appear)
+-------------
+Date 10/26/25 - Amara Irobi
+Question - How to ensure all recipes in database are called correctly and show up when card is pressed
+Application - Add the recipeid in all db.insert tables and increase the version number of static const _databaseVersion.
+Reflection - I had previous trouble seeing anything when I would click on a card. This showed me that hot reloading when dealing with databases is not enough, and that you must either uninstall the app(not ideal), or increase the database version number, so that SQl can re-run the new tables. The database setup should also merge all tables into one database, myrecipes.db.
+-------------
+Date 10/26/25 - Amara Irobi
+Question - How to make sure the buttons on the recipe screen link back to its respective tab?
+Application - The elevated buttons need to be edited so that navigator.pop can navigate to the appropriate tab index.
+Reflection - This showed me how features in the app can be easily connected to one other, without too much headache.

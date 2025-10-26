@@ -629,8 +629,15 @@ class _GenerateCardState extends State<generateCard> with SingleTickerProviderSt
           context,
           MaterialPageRoute(
             builder: (_) => RecipeDetailScreen(recipeId: widget.recipeId),
+          
           ),
-        );
+       ).then((result) {
+        if (result is int) {
+          // jumps to selected tab index
+          _MyHomePageState? homeState = context.findAncestorStateOfType<_MyHomePageState>();
+          homeState?._tabController.animateTo(result);
+        }
+       });
       },
       child: FadeTransition(
         opacity: _opacityAnimation,

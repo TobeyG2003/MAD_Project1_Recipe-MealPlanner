@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path_provider/path_provider.dart';
 
 class DatabaseHelper {
-  static const _databaseVersion = 1;
+  static const _databaseVersion = 2;
 
   static const recipeid = 'id';
   static const recipename = 'name';
@@ -43,41 +43,25 @@ class DatabaseHelper {
   Future<void> init() async {
     final documentsDirectory = await getApplicationDocumentsDirectory();
     final path = join(documentsDirectory.path, 'myrecipes.db');
-    final path2 = join(documentsDirectory.path, 'mytags.db');
-    final path3 = join(documentsDirectory.path, 'myrecipetags.db');
-    final path4 = join(documentsDirectory.path, 'myingredients.db');
-    final path5 = join(documentsDirectory.path, 'myinstructions.db');
-    final path6 = join(documentsDirectory.path, 'mymeals.db');
+   
+    
     recipesdb = await openDatabase(
       path,
       version: _databaseVersion,
-      onCreate: _onCreateRecipes,
+      onCreate: (db, version) async {
+        await _onCreateRecipes(db, version);
+        await _onCreateTags(db, version);
+        await _onCreateRecipeTags(db, version);
+        await _onCreateIngredients(db, version);
+        await _onCreateInstructions(db, version);
+        await _onCreateMeals(db, version);
+      },
     );
-    tagsdb = await openDatabase(
-      path2,
-      version: _databaseVersion,
-      onCreate: _onCreateTags,
-    );
-    recipetagsdb = await openDatabase(
-      path3,
-      version: _databaseVersion,
-      onCreate: _onCreateRecipeTags,
-    );
-    ingredientsdb = await openDatabase(
-      path4,
-      version: _databaseVersion,
-      onCreate: _onCreateIngredients,
-    );
-    instructionsdb = await openDatabase(
-      path5,
-      version: _databaseVersion,
-      onCreate: _onCreateInstructions,
-    );
-    mealsdb = await openDatabase(
-      path6,
-      version: _databaseVersion,
-      onCreate: _onCreateMeals,
-    );
+    tagsdb = recipesdb;  
+    recipetagsdb = recipesdb;
+    ingredientsdb = recipesdb;
+    instructionsdb = recipesdb;
+    mealsdb = recipesdb;
   }
 
 // SQL code to create the database table
@@ -92,9 +76,9 @@ $recipefavorite INTEGER DEFAULT 0
 )
 ''');
   // Use the column constants to avoid mismatched keys
-  await db.insert('recipestable', {recipename: 'sample1', recipedescription: 'sample desc.', recipeimageUrl: 'assets/sample1.jpg', recipefavorite: 0});
-  await db.insert('recipestable', {recipename: 'sample2', recipedescription: 'sample desc.', recipeimageUrl: 'assets/sample2.jpg', recipefavorite: 0});
-  await db.insert('recipestable', {recipename: 'sample3', recipedescription: 'sample desc.', recipeimageUrl: 'assets/sample3.jpg', recipefavorite: 0});
+  await db.insert('recipestable', {recipename: 'Oven-Roasted Chicken Shawarma', recipedescription: 'An oven roasted version of a great street food classic.', recipeimageUrl: 'assets/shawarma.jpg', recipefavorite: 0});
+  await db.insert('recipestable', {recipename: 'Oyster Mushroom Fried Chicken', recipedescription: 'sample desc.', recipeimageUrl: 'assets/oyster.jpg', recipefavorite: 0});
+  await db.insert('recipestable', {recipename: 'Good Old-Fashioned Pancakes', recipedescription: 'sample desc.', recipeimageUrl: 'assets/pancake.jpg', recipefavorite: 0});
   }
 Future _onCreateTags(Database db, int version) async {
     await db.execute('''
@@ -119,9 +103,9 @@ FOREIGN KEY ($recipetagrecipeID) REFERENCES recipestable($recipeid) ON DELETE CA
 FOREIGN KEY ($recipetagtagID) REFERENCES tagstable($tagid) ON DELETE CASCADE
 )
 ''');
-await db.insert('recipetagstable', {'recipeId': 1, 'tagId': 1,});
+await db.insert('recipetagstable', {'recipeId': 1, 'tagId': 3,});
 await db.insert('recipetagstable', {'recipeId': 2, 'tagId': 2,});
-await db.insert('recipetagstable', {'recipeId': 3, 'tagId': 3,});
+await db.insert('recipetagstable', {'recipeId': 3, 'tagId': 1,});
   }
 Future _onCreateIngredients(Database db, int version) async {
     await db.execute('''
@@ -134,10 +118,39 @@ $ingredientrecipeID INTEGER,
 FOREIGN KEY ($ingredientrecipeID) REFERENCES recipestable($recipeid) ON DELETE CASCADE
 )
 ''');
-await db.insert('ingredientstable', {'name': 'Ingredient1', 'quantity': 1.0, 'unit': 'cup', 'recipeId': 1,});
-await db.insert('ingredientstable', {'name': 'Ingredient2', 'quantity': 2.0, 'unit': 'tbsp', 'recipeId': 1,});
-await db.insert('ingredientstable', {'name': 'Ingredient3', 'quantity': 3.0, 'unit': 'grams', 'recipeId': 2,});
-await db.insert('ingredientstable', {'name': 'Ingredient4', 'quantity': 4.0, 'unit': 'ml', 'recipeId': 3,});
+await db.insert('ingredientstable', {'name': 'Lemons', 'quantity': 1.25, 'unit': 'cup', 'recipeId': 1,});
+await db.insert('ingredientstable', {'name': 'Olive Oil', 'quantity': .5, 'unit': 'cup', 'recipeId': 1,});
+await db.insert('ingredientstable', {'name': 'Garlic cloves, peeled, mashed, and minced', 'quantity': 6.0, 'unit': '', 'recipeId': 1,});
+await db.insert('ingredientstable', {'name': 'Kosher Salt', 'quantity': 1.0, 'unit': 'tsp', 'recipeId': 1,});
+await db.insert('ingredientstable', {'name': 'Freshly ground black pepper', 'quantity': 2.0, 'unit': 'tsp', 'recipeId': 1,});
+await db.insert('ingredientstable', {'name': 'Ground cumin', 'quantity': 2.0, 'unit': 'tsp', 'recipeId': 1,});
+await db.insert('ingredientstable', {'name': 'Paprika', 'quantity': 2.0, 'unit': 'tsp', 'recipeId': 1,});
+await db.insert('ingredientstable', {'name': 'Turmeric', 'quantity': 4.0, 'unit': 'ml', 'recipeId': 1,});
+await db.insert('ingredientstable', {'name': 'Ground cinnamon', 'quantity': .25, 'unit': 'tsp', 'recipeId': 1,});
+await db.insert('ingredientstable', {'name': 'Crushed red pepper', 'quantity': 1.0, 'unit': 'tsp', 'recipeId': 1,});
+await db.insert('ingredientstable', {'name': 'Boneless, skinless chicken thighs', 'quantity': 2.0, 'unit': 'lbs', 'recipeId': 1,});
+await db.insert('ingredientstable', {'name': 'Red onion', 'quantity': 1.0, 'unit': '', 'recipeId': 1,});
+await db.insert('ingredientstable', {'name': 'Fresh parsley', 'quantity': 2.0, 'unit': 'tbsp', 'recipeId': 1,});
+
+await db.insert('ingredientstable', {'name': 'Oyster mushrooms', 'quantity': 150.0, 'unit': 'grams', 'recipeId': 2,});
+await db.insert('ingredientstable', {'name': 'All purpose flour', 'quantity': 1.5, 'unit': 'cups', 'recipeId': 2,});
+await db.insert('ingredientstable', {'name': 'Paprika', 'quantity': 1.5, 'unit': 'tsp', 'recipeId': 2,});
+await db.insert('ingredientstable', {'name': 'Garlic Powder', 'quantity': 1.5, 'unit': 'tsp', 'recipeId': 2,});
+await db.insert('ingredientstable', {'name': 'Onion Powder', 'quantity': 1.5, 'unit': 'tsp', 'recipeId': 2,});
+await db.insert('ingredientstable', {'name': 'Turmeric', 'quantity': 1.0, 'unit': 'tsp', 'recipeId': 2,});
+await db.insert('ingredientstable', {'name': 'Cayenne', 'quantity': .25, 'unit': 'tsp', 'recipeId': 2,});
+await db.insert('ingredientstable', {'name': 'Salt', 'quantity': 1.0, 'unit': 'tsp', 'recipeId': 2,});
+await db.insert('ingredientstable', {'name': 'Black pepper', 'quantity': 1.0, 'unit': 'tsp', 'recipeId': 2,});
+await db.insert('ingredientstable', {'name': 'Oil for frying (I recommend Canola)', 'quantity': 4.0, 'unit': 'cups', 'recipeId': 2,});
+
+await db.insert('ingredientstable', {'name': 'All-Purpose Flour', 'quantity': 3.0, 'unit': 'grams', 'recipeId': 3,});
+await db.insert('ingredientstable', {'name': 'Baking Powder', 'quantity': 4.0, 'unit': 'ml', 'recipeId': 3,});
+await db.insert('ingredientstable', {'name': 'White sugar/sweetener', 'quantity': 1.0, 'unit': 'tbsp', 'recipeId': 3,});
+await db.insert('ingredientstable', {'name': 'Milk', 'quantity': 1.5, 'unit': 'cups', 'recipeId': 3,});
+await db.insert('ingredientstable', {'name': 'Butter', 'quantity': 3.0, 'unit': 'tbsp', 'recipeId': 3,});
+await db.insert('ingredientstable', {'name': 'Salt', 'quantity': .25, 'unit': 'tsp', 'recipeId': 3,});
+await db.insert('ingredientstable', {'name': 'Egg', 'quantity': 2.0, 'unit': '', 'recipeId': 3,});
+
   }
 Future _onCreateInstructions(Database db, int version) async {
     await db.execute('''
@@ -149,10 +162,23 @@ $instructionrecipeID INTEGER,
 FOREIGN KEY ($instructionrecipeID) REFERENCES recipestable($recipeid) ON DELETE CASCADE
 )
 ''');
-await db.insert('instructionstable', {'description': 'Step 1 description', 'stepNumber': 1, 'recipeId': 1,});
-await db.insert('instructionstable', {'description': 'Step 2 description', 'stepNumber': 2, 'recipeId': 1,});
-await db.insert('instructionstable', {'description': 'Step 1 description', 'stepNumber': 1, 'recipeId': 2,});
-await db.insert('instructionstable', {'description': 'Step 1 description', 'stepNumber': 1, 'recipeId': 3,});
+await db.insert('instructionstable', {'description': 'Prepare a marinade for the chicken. Combine the lemon juice, ½ cup olive oil, garlic, salt, pepper, cumin, paprika, turmeric, cinnamon and crushed red pepper in a large bowl, then whisk to combine. Add the chicken and toss well to coat. Cover and store in refrigerator for at least 1 hour and up to 12 hours.', 'stepNumber': 1, 'recipeId': 1,});
+await db.insert('instructionstable', {'description': 'When ready to cook, heat oven to 425 degrees. Use the remaining tablespoon of olive oil to grease a rimmed sheet pan. Add the quartered onion to the chicken and marinade, and toss once to combine. Remove the chicken and onion from the marinade, and place on the pan, spreading everything evenly across it.', 'stepNumber': 2, 'recipeId': 1,});
+await db.insert('instructionstable', {'description': 'Put the chicken in the oven and roast until it is browned, crisp at the edges and cooked through, about 30 to 40 minutes. Remove from the oven, allow to rest 2 minutes, then slice into bits. (To make the chicken even more crisp, set a large pan over high heat, add a tablespoon of olive oil to the pan, then the sliced chicken, and sauté until everything curls tight in the heat.)', 'stepNumber': 3, 'recipeId': 1,});
+await db.insert('instructionstable', {'description': 'Scatter the parsley over the top and serve with tomatoes, cucumbers, pita, white sauce, hot sauce, olives, fried eggplant, feta, rice — really anything you desire.', 'stepNumber': 4, 'recipeId': 1,});
+
+await db.insert('instructionstable', {'description': 'Wash and dry oyster mushrooms.', 'stepNumber': 1, 'recipeId': 2,});
+await db.insert('instructionstable', {'description': 'In a large bowl, add the flour and all the spices. Mix together until well combined', 'stepNumber': 2, 'recipeId': 2,});
+await db.insert('instructionstable', {'description': 'In a second bowl, add ⅓ cup of the flour mixture with ¾ cups of water. Whisk together until to achieve a smooth batter consistency.', 'stepNumber': 3, 'recipeId': 2,});
+await db.insert('instructionstable', {'description': 'Dip each mushroom into the wet batter mixture then into the flour mixture. Double coat each mushroom back into the wet batter and then back in the flour mixture, making sure the mushrooms are fully coated in flour.', 'stepNumber': 4, 'recipeId': 2,});
+await db.insert('instructionstable', {'description': 'Heat oil in a pot over high heat and carefully drop mushrooms into the oil one at a time in batches. Do not overcrowd the pot, you can fry a few at a time depending how large your pot is. Let them fry for a few minutes until nice and golden on all sides.', 'stepNumber': 5, 'recipeId': 2,});
+await db.insert('instructionstable', {'description': 'Remove and place on paper towels to remove excess oil, then place on a cooling rack to keep crispy until the rest is done. Enjoy with your favourite dipping sauce!', 'stepNumber': 6, 'recipeId': 2,});
+
+await db.insert('instructionstable', {'description': 'Gather all ingredients.', 'stepNumber': 1, 'recipeId': 3,});
+await db.insert('instructionstable', {'description': 'Sift flour, baking powder, sugar, and salt together in a large bowl. Make a well in the center and add milk, melted butter, and egg; mix until smooth.', 'stepNumber': 2, 'recipeId': 3,});
+await db.insert('instructionstable', {'description': 'Heat a lightly oiled griddle or pan over medium-high heat. Pour or scoop the batter onto the griddle, using approximately 1/4 cup for each pancake; cook until bubbles form and the edges are dry, about 2 to 3 minutes.', 'stepNumber': 3, 'recipeId': 3,});
+await db.insert('instructionstable', {'description': 'Flip and cook until browned on the other side. Repeat with remaining batter.', 'stepNumber': 4, 'recipeId': 3,});
+await db.insert('instructionstable', {'description': 'Serve and enjoy!', 'stepNumber': 5, 'recipeId': 3,});
   }
 Future _onCreateMeals(Database db, int version) async {
     await db.execute('''
