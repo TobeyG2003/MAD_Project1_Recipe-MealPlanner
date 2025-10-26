@@ -306,7 +306,18 @@ await db.insert('mealstable', {'recipeId': null, 'date': 'Saturday',});
       whereArgs: [mealId],
     );
   }
-  
+
+  Future<int> clearMeal(int mealId) async {
+    return await mealsdb.update(
+      'mealstable',
+      {
+        mealrecipieID: null,
+      },
+      where: '$mealid = ?',
+      whereArgs: [mealId],
+    );
+  }
+
   Future<List<Map<String,dynamic>>> getTagsForRecipe(int recipeId) async {
     // get tagIds from recipetagsdb
     final List<Map<String, dynamic>> tagIdRows = await recipetagsdb.query(
