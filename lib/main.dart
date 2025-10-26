@@ -3,6 +3,9 @@ import 'database_setup.dart';
 import 'dart:async';
 import 'screens/recipe_details.dart';
 import 'screens/planner_screens.dart';
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:image_picker/image_picker.dart';
 
 final dbHelper = DatabaseHelper();
 
@@ -46,10 +49,31 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   Future<List<Map<String, dynamic>>> favoritesList = Future.value([]);
   Future<List<Map<String, dynamic>>> groceryList = Future.value([]);
 
+  // Share tab form controllers
+  final TextEditingController _recipeNameController = TextEditingController();
+  final TextEditingController _recipeDescriptionController = TextEditingController();
+  String? imagestring;
+  bool _isFavorite = false;
+  
+  // Ingredients list - each ingredient has name, quantity, and unit
+  List<Map<String, TextEditingController>> _ingredients = [
+    {
+      'name': TextEditingController(),
+      'quantity': TextEditingController(),
+      'unit': TextEditingController(),
+    }
+  ];
+  
+  // Instructions list - each instruction has a description
+  List<TextEditingController> _instructions = [TextEditingController()];
+  
+  // Selected tags for the new recipe
+  List<String> _selectedRecipeTags = [];
+
       @override
       void initState() {
         super.initState();
-        _tabController = TabController(length: 5, vsync: this);
+        _tabController = TabController(length: 6, vsync: this);
         _tabController.animation!.addListener(() {
         setState(() {
           
@@ -69,6 +93,21 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       @override
       void dispose() {
         _tabController.dispose();
+        _recipeNameController.dispose();
+        _recipeDescriptionController.dispose();
+        
+        // Dispose ingredient controllers
+        for (var ingredient in _ingredients) {
+          ingredient['name']?.dispose();
+          ingredient['quantity']?.dispose();
+          ingredient['unit']?.dispose();
+        }
+        
+        // Dispose instruction controllers
+        for (var instruction in _instructions) {
+          instruction.dispose();
+        }
+        
         super.dispose();
       }
 
@@ -97,6 +136,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           BottomNavigationBarItem(icon: Icon(Icons.edit_calendar), label: 'Planner'),
           BottomNavigationBarItem(icon: Icon(Icons.favorite), label: 'Favorites'),
           BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: 'Grocery List'),
+          BottomNavigationBarItem(icon: Icon(Icons.share), label: 'Share'),
         ],
       ),
       
@@ -144,7 +184,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                   children: [
                     //tab 1 recipes
                     SingleChildScrollView(
-                      child: Column(
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 20.0),
+                        child: Column(
                         mainAxisAlignment: MainAxisAlignment.start,
                         children: [
                       SizedBox(height: 25),
@@ -237,6 +279,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                               crossAxisSpacing: 10,
                               //childAspectRatio: 1.0,
                               shrinkWrap: true,
+                              physics: NeverScrollableScrollPhysics(),
                               children: [
                                 for (var i = 0; i < data.length; i++)
                                   generateCard(
@@ -253,6 +296,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                       ),
                   ],
                 ),
+                      ),
                     ),
                     // tab 2 recipes, shows generic message until user presses on recipe on homepage
                     selectedRecipeId == null
@@ -366,8 +410,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                   generateCard(
                                     recipeId: data[i]['id'] as int,
                                     name: (data[i]['name'] ?? '').toString(),
-                                    // Use the actual DB column key 'imageURl' and guard nulls
-                                    recipeimageUrl: (data[i]['imageURl'] ?? '').toString(),
+                                    recipeimageUrl: (data[i]['imageUrl'] ?? '').toString(),
                                     index: i,
                                   )
                               ],
@@ -453,6 +496,565 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                           ),
                       ),
                       ],
+                      ),
+                    ),
+                    //tab 6 share screen with complete recipe form
+                    SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            SizedBox(height: 25),
+                            Container(
+                              width: 400,
+                              height: 75,
+                              alignment: Alignment.center,
+                              padding: const EdgeInsets.all(16.0),
+                              decoration: BoxDecoration(
+                                color: const Color.fromARGB(240, 255, 255, 255),
+                                border: Border.all(
+                                  color: const Color.fromARGB(255, 186, 28, 28),
+                                  width: 2.0,
+                                ),
+                                borderRadius: BorderRadius.circular(8.0),
+                              ),
+                              child: Text(
+                                'Share a Recipe',
+                                style: TextStyle(
+                                  fontSize: 30,
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: 20),
+                            Container(
+                              width: 400,
+                              alignment: Alignment.center,
+                              padding: const EdgeInsets.all(16.0),
+                              decoration: BoxDecoration(
+                                color: const Color.fromARGB(240, 255, 255, 255),
+                                border: Border.all(
+                                  color: const Color.fromARGB(255, 186, 28, 28),
+                                  width: 2.0,
+                                ),
+                                borderRadius: BorderRadius.circular(8.0),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Recipe Name Field
+                                  Text(
+                                    'Recipe Name',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  SizedBox(height: 8),
+                                  TextField(
+                                    controller: _recipeNameController,
+                                    decoration: InputDecoration(
+                                      hintText: 'Enter recipe name...',
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8.0),
+                                        borderSide: BorderSide(
+                                          color: const Color.fromARGB(255, 186, 28, 28),
+                                          width: 2.0,
+                                        ),
+                                      ),
+                                      contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 12.0,
+                                        vertical: 10.0,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(height: 20),
+
+                                  // Recipe Description Field
+                                  Text(
+                                    'Recipe Description',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  SizedBox(height: 8),
+                                  TextField(
+                                    controller: _recipeDescriptionController,
+                                    maxLines: 4,
+                                    decoration: InputDecoration(
+                                      hintText: 'Enter recipe description...',
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8.0),
+                                        borderSide: BorderSide(
+                                          color: const Color.fromARGB(255, 186, 28, 28),
+                                          width: 2.0,
+                                        ),
+                                      ),
+                                      contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 12.0,
+                                        vertical: 10.0,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(height: 20),
+
+                                  // Image Upload Section
+                                  Text(
+                                    'Recipe Image',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  SizedBox(height: 8),
+                                  Center(
+                                    child: Column(
+                                      children: [
+                                        ElevatedButton(
+                                          onPressed: () async {
+                                            final ImagePicker picker = ImagePicker();
+                                            final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+                                            if (image != null) {
+                                              final Uint8List bytes = await image.readAsBytes();
+                                              setState(() {
+                                                imagestring = 'base64,${base64Encode(bytes)}';
+                                              });
+                                              print('Selected image path: ${image.path}');
+                                            }
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: const Color.fromARGB(255, 188, 44, 44),
+                                          ),
+                                          child: Text(
+                                            'Select Image',
+                                            style: TextStyle(color: Colors.white),
+                                          ),
+                                        ),
+                                        if (imagestring != null) ...[
+                                          SizedBox(height: 10),
+                                          Text(
+                                            'Image selected',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              color: const Color.fromARGB(255, 181, 26, 26),
+                                            ),
+                                          ),
+                                          SizedBox(height: 10),
+                                          ClipRRect(
+                                            borderRadius: BorderRadius.circular(8.0),
+                                            child: Image.memory(
+                                              base64Decode(imagestring!.substring('base64,'.length)),
+                                              height: 150,
+                                              width: 200,
+                                              fit: BoxFit.cover,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                  SizedBox(height: 20),
+
+                                  // Ingredients Section
+                                  Text(
+                                    'Ingredients',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  SizedBox(height: 8),
+                                  ..._ingredients.asMap().entries.map((entry) {
+                                    int index = entry.key;
+                                    var ingredient = entry.value;
+                                    return Padding(
+                                      padding: const EdgeInsets.only(bottom: 10.0),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            flex: 3,
+                                            child: TextField(
+                                              controller: ingredient['name'],
+                                              decoration: InputDecoration(
+                                                hintText: 'Name',
+                                                border: OutlineInputBorder(
+                                                  borderRadius: BorderRadius.circular(8.0),
+                                                ),
+                                                contentPadding: EdgeInsets.symmetric(
+                                                  horizontal: 8.0,
+                                                  vertical: 8.0,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          SizedBox(width: 8),
+                                          Expanded(
+                                            flex: 2,
+                                            child: TextField(
+                                              controller: ingredient['quantity'],
+                                              keyboardType: TextInputType.numberWithOptions(decimal: true),
+                                              decoration: InputDecoration(
+                                                hintText: 'Qty',
+                                                border: OutlineInputBorder(
+                                                  borderRadius: BorderRadius.circular(8.0),
+                                                ),
+                                                contentPadding: EdgeInsets.symmetric(
+                                                  horizontal: 8.0,
+                                                  vertical: 8.0,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          SizedBox(width: 8),
+                                          Expanded(
+                                            flex: 2,
+                                            child: TextField(
+                                              controller: ingredient['unit'],
+                                              decoration: InputDecoration(
+                                                hintText: 'Unit',
+                                                border: OutlineInputBorder(
+                                                  borderRadius: BorderRadius.circular(8.0),
+                                                ),
+                                                contentPadding: EdgeInsets.symmetric(
+                                                  horizontal: 8.0,
+                                                  vertical: 8.0,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          IconButton(
+                                            icon: Icon(
+                                              Icons.remove_circle,
+                                              color: Colors.red,
+                                            ),
+                                            onPressed: () {
+                                              if (_ingredients.length > 1) {
+                                                setState(() {
+                                                  ingredient['name']?.dispose();
+                                                  ingredient['quantity']?.dispose();
+                                                  ingredient['unit']?.dispose();
+                                                  _ingredients.removeAt(index);
+                                                });
+                                              }
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }).toList(),
+                                  TextButton.icon(
+                                    onPressed: () {
+                                      setState(() {
+                                        _ingredients.add({
+                                          'name': TextEditingController(),
+                                          'quantity': TextEditingController(),
+                                          'unit': TextEditingController(),
+                                        });
+                                      });
+                                    },
+                                    icon: Icon(Icons.add_circle, color: const Color.fromARGB(255, 188, 44, 44)),
+                                    label: Text(
+                                      'Add Ingredient',
+                                      style: TextStyle(color: const Color.fromARGB(255, 188, 44, 44)),
+                                    ),
+                                  ),
+                                  SizedBox(height: 20),
+
+                                  // Instructions Section
+                                  Text(
+                                    'Instructions',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  SizedBox(height: 8),
+                                  ..._instructions.asMap().entries.map((entry) {
+                                    int index = entry.key;
+                                    var instruction = entry.value;
+                                    return Padding(
+                                      padding: const EdgeInsets.only(bottom: 10.0),
+                                      child: Row(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Padding(
+                                            padding: const EdgeInsets.only(top: 12.0, right: 8.0),
+                                            child: Text(
+                                              '${index + 1}.',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                          Expanded(
+                                            child: TextField(
+                                              controller: instruction,
+                                              maxLines: 2,
+                                              decoration: InputDecoration(
+                                                hintText: 'Enter step description...',
+                                                border: OutlineInputBorder(
+                                                  borderRadius: BorderRadius.circular(8.0),
+                                                ),
+                                                contentPadding: EdgeInsets.symmetric(
+                                                  horizontal: 10.0,
+                                                  vertical: 10.0,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          IconButton(
+                                            icon: Icon(
+                                              Icons.remove_circle,
+                                              color: Colors.red,
+                                            ),
+                                            onPressed: () {
+                                              if (_instructions.length > 1) {
+                                                setState(() {
+                                                  instruction.dispose();
+                                                  _instructions.removeAt(index);
+                                                });
+                                              }
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }).toList(),
+                                  TextButton.icon(
+                                    onPressed: () {
+                                      setState(() {
+                                        _instructions.add(TextEditingController());
+                                      });
+                                    },
+                                    icon: Icon(Icons.add_circle, color: const Color.fromARGB(255, 188, 44, 44)),
+                                    label: Text(
+                                      'Add Instruction Step',
+                                      style: TextStyle(color: const Color.fromARGB(255, 188, 44, 44)),
+                                    ),
+                                  ),
+                                  SizedBox(height: 20),
+
+                                  // Tags Section
+                                  Text(
+                                    'Tags',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  SizedBox(height: 8),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: availableTags.map((tag) {
+                                      final tagName = tag['name'] as String;
+                                      final isSelected = _selectedRecipeTags.contains(tagName);
+                                      return FilterChip(
+                                        label: Text(tagName),
+                                        selected: isSelected,
+                                        selectedColor: const Color.fromARGB(255, 230, 200, 200),
+                                        checkmarkColor: const Color.fromARGB(255, 188, 44, 44),
+                                        onSelected: (bool selected) {
+                                          setState(() {
+                                            if (selected) {
+                                              _selectedRecipeTags.add(tagName);
+                                            } else {
+                                              _selectedRecipeTags.remove(tagName);
+                                            }
+                                          });
+                                        },
+                                      );
+                                    }).toList(),
+                                  ),
+                                  if (availableTags.isEmpty)
+                                    Text(
+                                      'No tags available',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  SizedBox(height: 20),
+
+                                  // Favorite Checkbox
+                                  Row(
+                                    children: [
+                                      Checkbox(
+                                        value: _isFavorite,
+                                        activeColor: const Color.fromARGB(255, 188, 44, 44),
+                                        onChanged: (bool? value) {
+                                          setState(() {
+                                            _isFavorite = value ?? false;
+                                          });
+                                        },
+                                      ),
+                                      Text(
+                                        'Mark as Favorite',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 20),
+
+                                  // Submit Button
+                                  Center(
+                                    child: ElevatedButton(
+                                      onPressed: () async {
+                                        // Validate inputs
+                                        if (_recipeNameController.text.trim().isEmpty) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text('Please enter a recipe name'),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                          return;
+                                        }
+
+                                        if (_recipeDescriptionController.text.trim().isEmpty) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text('Please enter a recipe description'),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                          return;
+                                        }
+
+                                        // Insert recipe into database and get the new recipe ID
+                                        try {
+                                          // Step 1: Insert recipe and get the new ID
+                                          final int newRecipeId = await dbHelper.recipesdb.insert('recipestable', {
+                                            'name': _recipeNameController.text.trim(),
+                                            'description': _recipeDescriptionController.text.trim(),
+                                            'imageURl': imagestring ?? '',
+                                            'isFavorite': _isFavorite ? 1 : 0,
+                                          });
+
+                                          // Step 2: Insert ingredients with recipe foreign key
+                                          for (var ingredient in _ingredients) {
+                                            final name = ingredient['name']!.text.trim();
+                                            final quantityText = ingredient['quantity']!.text.trim();
+                                            final unit = ingredient['unit']!.text.trim();
+                                            
+                                            if (name.isNotEmpty) {
+                                              final double quantity = double.tryParse(quantityText) ?? 0.0;
+                                              await dbHelper.ingredientsdb.insert('ingredientstable', {
+                                                'name': name,
+                                                'quantity': quantity,
+                                                'unit': unit,
+                                                'recipeId': newRecipeId,
+                                              });
+                                            }
+                                          }
+
+                                          // Step 3: Insert instructions with recipe foreign key
+                                          for (int i = 0; i < _instructions.length; i++) {
+                                            final description = _instructions[i].text.trim();
+                                            if (description.isNotEmpty) {
+                                              await dbHelper.instructionsdb.insert('instructionstable', {
+                                                'description': description,
+                                                'stepNumber': i + 1,
+                                                'recipeId': newRecipeId,
+                                              });
+                                            }
+                                          }
+
+                                          // Step 4: Insert recipe-tag associations with foreign keys
+                                          for (var tagName in _selectedRecipeTags) {
+                                            // Find the tag ID from availableTags
+                                            final tagData = availableTags.firstWhere(
+                                              (tag) => tag['name'] == tagName,
+                                              orElse: () => <String, dynamic>{},
+                                            );
+                                            
+                                            if (tagData.isNotEmpty) {
+                                              final tagId = tagData['id'] as int;
+                                              await dbHelper.recipetagsdb.insert('recipetagstable', {
+                                                'recipeId': newRecipeId,
+                                                'tagId': tagId,
+                                              });
+                                            }
+                                          }
+
+                                          // Show success message
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text('Recipe added successfully!'),
+                                              backgroundColor: Colors.green,
+                                            ),
+                                          );
+
+                                          // Clear form
+                                          _recipeNameController.clear();
+                                          _recipeDescriptionController.clear();
+                                          
+                                          // Clear and reset ingredients
+                                          for (var ingredient in _ingredients) {
+                                            ingredient['name']?.dispose();
+                                            ingredient['quantity']?.dispose();
+                                            ingredient['unit']?.dispose();
+                                          }
+                                          
+                                          // Clear and reset instructions
+                                          for (var instruction in _instructions) {
+                                            instruction.dispose();
+                                          }
+                                          
+                                          setState(() {
+                                            imagestring = null;
+                                            _isFavorite = false;
+                                            _selectedRecipeTags.clear();
+                                            
+                                            // Reset to single empty fields
+                                            _ingredients = [
+                                              {
+                                                'name': TextEditingController(),
+                                                'quantity': TextEditingController(),
+                                                'unit': TextEditingController(),
+                                              }
+                                            ];
+                                            _instructions = [TextEditingController()];
+                                          });
+
+                                          // Refresh recipes list
+                                          recipesList = dbHelper.queryItemsWithFilters('', []);
+                                          favoritesList = dbHelper.queryItemsWithFilters('', [], onlyFavorites: true);
+                                        } catch (e) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text('Error adding recipe: $e'),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                        }
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color.fromARGB(255, 188, 44, 44),
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 40.0,
+                                          vertical: 15.0,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'Submit Recipe',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 18,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(height: 10),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -667,7 +1269,14 @@ class _GenerateCardState extends State<generateCard> with SingleTickerProviderSt
                           alignment: Alignment.center,
                           child: const Icon(Icons.image_not_supported),
                         )
-                      : Image.asset(
+                      : widget.recipeimageUrl.startsWith('base64,') ?
+                          Image.memory(
+                            base64Decode(widget.recipeimageUrl.substring('base64,'.length)),
+                            height: 120,
+                            width: 150,
+                            fit: BoxFit.cover,
+                          )
+                      :Image.asset(
                           widget.recipeimageUrl,
                           width: 150,
                           height: 120,
