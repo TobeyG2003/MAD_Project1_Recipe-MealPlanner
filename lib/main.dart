@@ -572,7 +572,7 @@ class _GenerateCardState extends State<generateCard> with SingleTickerProviderSt
   late Animation<double> _opacityAnimation;
   late Animation<Offset> _slideAnimation;
 
-  final Duration duration = const Duration(milliseconds: 800);
+  final Duration duration = const Duration(milliseconds: 600);
   final Duration baseDelay = const Duration(milliseconds: 100);
   final int staggerDelayMs = 80; // Delay between each card
   final double offset = 30.0;

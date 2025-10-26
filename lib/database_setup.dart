@@ -212,12 +212,6 @@ await db.insert('mealstable', {'recipeId': null, 'date': 'Saturday',});
   Future<List<Map<String, dynamic>>> queryItemsWithFilters(String nameSearch, List<String> tags, {bool? onlyFavorites}) async {
 
     // Build base query for recipes
-    String query = '''
-      SELECT r.$recipeid, r.$recipename, r.$recipedescription, 
-             r.$recipeimageUrl, r.$recipefavorite
-      FROM recipestable r
-    ''';
-
     List<dynamic> whereArgs = [];
     List<String> conditions = [];
 
@@ -232,9 +226,21 @@ await db.insert('mealstable', {'recipeId': null, 'date': 'Saturday',});
       conditions.add('r.$recipefavorite = 1');
     }
 
-    // Add WHERE clause if we have conditions
+    // Build query with WHERE clause if we have conditions
+    String query;
     if (conditions.isNotEmpty) {
-      query = query.replaceFirst('FROM', 'WHERE ${conditions.join(' AND ')}\nFROM');
+      query = '''
+        SELECT r.$recipeid, r.$recipename, r.$recipedescription, 
+               r.$recipeimageUrl, r.$recipefavorite
+        FROM recipestable r
+        WHERE ${conditions.join(' AND ')}
+      ''';
+    } else {
+      query = '''
+        SELECT r.$recipeid, r.$recipename, r.$recipedescription, 
+               r.$recipeimageUrl, r.$recipefavorite
+        FROM recipestable r
+      ''';
     }
 
     // Execute the query to get base recipe results
