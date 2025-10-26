@@ -238,12 +238,13 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                               //childAspectRatio: 1.0,
                               shrinkWrap: true,
                               children: [
-                                for (var recipe in data)
+                                for (var i = 0; i < data.length; i++)
                                   generateCard(
-                                    recipeId: recipe['id'] as int,
-                                    name: (recipe['name'] ?? '').toString(),
+                                    recipeId: data[i]['id'] as int,
+                                    name: (data[i]['name'] ?? '').toString(),
                                     // Use the actual DB column key 'imageURl' and guard nulls
-                                    recipeimageUrl: (recipe['imageURl'] ?? '').toString(),
+                                    recipeimageUrl: (data[i]['imageURl'] ?? '').toString(),
+                                    index: i,
                                   )
                               ],
                             );
@@ -361,12 +362,13 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                               //childAspectRatio: 1.0,
                               shrinkWrap: true,
                               children: [
-                                for (var recipe in data)
+                                for (var i = 0; i < data.length; i++)
                                   generateCard(
-                                    recipeId: recipe['id'] as int,
-                                    name: (recipe['name'] ?? '').toString(),
+                                    recipeId: data[i]['id'] as int,
+                                    name: (data[i]['name'] ?? '').toString(),
                                     // Use the actual DB column key 'imageURl' and guard nulls
-                                    recipeimageUrl: (recipe['imageURl'] ?? '').toString(),
+                                    recipeimageUrl: (data[i]['imageURl'] ?? '').toString(),
+                                    index: i,
                                   )
                               ],
                             );
@@ -546,98 +548,171 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   }
 }
 
-class generateCard extends StatelessWidget {
+class generateCard extends StatefulWidget {
   final int recipeId;
   final String name;
   final String recipeimageUrl;
-  generateCard({super.key, required this.recipeId, required this.name, required this.recipeimageUrl});
-  
+  final int index;
+
+  const generateCard({
+    super.key, 
+    required this.recipeId, 
+    required this.name, 
+    required this.recipeimageUrl,
+    this.index = 0,
+  });
+
+  @override
+  State<generateCard> createState() => _GenerateCardState();
+}
+
+class _GenerateCardState extends State<generateCard> with SingleTickerProviderStateMixin {
+  late Future<List<Map<String, dynamic>>> _tagsFuture;
+  late AnimationController _controller;
+  late Animation<double> _opacityAnimation;
+  late Animation<Offset> _slideAnimation;
+
+  final Duration duration = const Duration(milliseconds: 800);
+  final Duration baseDelay = const Duration(milliseconds: 100);
+  final int staggerDelayMs = 80; // Delay between each card
+  final double offset = 30.0;
+
+
+  @override
+  void initState() {
+    super.initState();
+    _tagsFuture = dbHelper.getTagsForRecipe(widget.recipeId);
+    _controller = AnimationController(
+      vsync: this,
+      duration: duration,
+    );
+
+    _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeIn,
+      ),
+    );
+
+    _slideAnimation = Tween<Offset>(
+      begin: Offset(0, offset / 100),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeInOut,
+      ),
+    );
+
+    // Calculate staggered delay based on index
+    final delay = baseDelay + Duration(milliseconds: widget.index * staggerDelayMs);
+    
+    Future.delayed(delay, () {
+      if (mounted) {
+        _controller.forward();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return InkWell (
-      onTap: () { // when card is tapped, goes to recipe details screen depending on id
+    return InkWell(
+      onTap: () {
+        // when card is tapped, goes to recipe details screen depending on id
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => RecipeDetailScreen(recipeId: recipeId),
+            builder: (_) => RecipeDetailScreen(recipeId: widget.recipeId),
           ),
         );
       },
-      child: Container(
-      padding: EdgeInsets.all(8.0),
-      width: 250,
-      height: 200,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(
-          color: const Color.fromARGB(255, 186, 28, 28),
-          width: 2.0,
-        ),
-        borderRadius: BorderRadius.circular(8.0),
-      ),
-      child: Column(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10.0),
-            child: recipeimageUrl.isEmpty
-                ? Container(
-                    width: 150,
-                    height: 120,
-                    color: Colors.grey.shade300,
-                    alignment: Alignment.center,
-                    child: const Icon(Icons.image_not_supported),
-                  )
-                : Image.asset(
-                    recipeimageUrl,
-                    width: 150,
-                    height: 120,
-                    fit: BoxFit.cover,
-                  ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              name,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
+      child: FadeTransition(
+        opacity: _opacityAnimation,
+        child: SlideTransition(
+          position: _slideAnimation,
+          child: Container(
+            padding: EdgeInsets.all(8.0),
+            width: 250,
+            height: 200,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(
+                color: const Color.fromARGB(255, 186, 28, 28),
+                width: 2.0,
               ),
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+            child: Column(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10.0),
+                  child: widget.recipeimageUrl.isEmpty
+                      ? Container(
+                          width: 150,
+                          height: 120,
+                          color: Colors.grey.shade300,
+                          alignment: Alignment.center,
+                          child: const Icon(Icons.image_not_supported),
+                        )
+                      : Image.asset(
+                          widget.recipeimageUrl,
+                          width: 150,
+                          height: 120,
+                          fit: BoxFit.cover,
+                        ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(
+                    widget.name,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                FutureBuilder<List<Map<String, dynamic>>>(
+                  future: _tagsFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const SizedBox.shrink();
+                    }
+                    final tagList = snapshot.data ?? [];
+                    if (tagList.isEmpty) return const SizedBox.shrink();
+                    return Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
+                      children: [
+                        for (var tag in tagList)
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
+                            decoration: BoxDecoration(
+                              color: const Color.fromARGB(255, 230, 200, 200),
+                              borderRadius: BorderRadius.circular(12.0),
+                            ),
+                            child: Text(
+                              tag['name'] ?? '',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: const Color.fromARGB(255, 255, 52, 52),
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ],
             ),
           ),
-          FutureBuilder<List<Map<String, dynamic>>>(
-            future: dbHelper.getTagsForRecipe(recipeId),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const SizedBox.shrink();
-              }
-              final tagList = snapshot.data ?? [];
-              if (tagList.isEmpty) return const SizedBox.shrink();
-              return Wrap(
-                spacing: 4,
-                runSpacing: 4,
-                children: [
-                  for (var tag in tagList)
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(255, 230, 200, 200),
-                        borderRadius: BorderRadius.circular(12.0),
-                      ),
-                      child: Text(
-                        tag['name'] ?? '',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: const Color.fromARGB(255, 255, 52, 52),
-                        ),
-                      ),
-                    ),
-                ],
-              );
-            },
-          ),
-        ],
+        ),
       ),
-    ),
-  );
+    );
   }
 }
