@@ -43,6 +43,6 @@ Reflection - I had previous trouble seeing anything when I would click on a card
 Date 10/26/25 - Amara Irobi
 Question - How to make sure the buttons on the recipe screen link back to its respective tab?
 Application - The elevated buttons need to be edited so that navigator.pop can navigate to the appropriate tab index.
-Reflection - This showed me how features in the app can be easily connected to one other, without too much headache.
+Reflection - This showed me how features in the app can be easily connected to one other, without too much headache.  
 -------------
 
