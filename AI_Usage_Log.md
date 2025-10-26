@@ -24,8 +24,15 @@ type 'Future<List<Map<String, dynamic>>>' is not a subtype of type 'List<Map<Str
 type cast
 Application - Initializes recipesList as a Future<List<Map<String>>>, initializes dbHelper and assigns it, and uses a FutureBuilder with the gridview to wait for the query to complete
 Reflection - This shows how to adjust the initializing of a list as well as building of content/UI when dealing with async functions.
-
+-------------
 Date - 10/25/25 - Tobey Gray
 Question - How to add up the quantity of ingredients from meals table
 Application - Gets the list of recipeIDs in the meal planner, from which it gets the list of ingredients for each recipeID. For each recipe, for each row of the ingredients list, add them to a map.
 Reflection - I was on the right track retrieving and searching with IDs, but wasn't sure how to add/store without creating duplicates in the list. This showed how to use the column names as keys to map so that for example 'beef' 'lbs' is stored but the 'qty' can be increased as rows containing 'beef' 'lbs' are added without creating duplicate entries. (note, 'beef' 'kg' would still appear)
+-------------
+Date - 10/26/25 - Tobey Gray
+Question - How to include tags, instructions, and ingredients in share recipe tab
+Application - Formats the UI so that ingredients is a row of fields for each column in the ingredients table and a field per instruction, each of which has a button to add an additional row or delete a row by adding/removing from their respective lists. The values of these lists are mapped to their appropriate tables in the db. Tags are created as filter chips which add/remove their value on toggle.
+Reflection - I wasn't sure how to go about allowing input for the ingredients and instructions. I was considering creating additional fields for each column in the ingredients and also having one form field spliced by commas to create a list of instructions. This showed me how to create/remove additional fields dynamically. I was going to just use the normal checklist boxes for the tags, so I know about the filter chip widget now.
+
+
