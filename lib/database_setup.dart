@@ -197,10 +197,6 @@ await db.insert('mealstable', {'recipeId': null, 'date': 'Thursday',});
 await db.insert('mealstable', {'recipeId': null, 'date': 'Friday',});
 await db.insert('mealstable', {'recipeId': null, 'date': 'Saturday',});
   }
-  
-  /*Future<int> insertcard(Map<String, dynamic> row) async {
-    return await cardsdb.insert('cardstable', row);
-  }*/
 
   Future<bool> getFavoriteStatus(int id) async {
     final List<Map<String, dynamic>> result = await recipesdb.query(

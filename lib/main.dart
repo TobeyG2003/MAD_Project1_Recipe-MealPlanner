@@ -277,7 +277,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                               crossAxisCount: 2,
                               mainAxisSpacing: 10,
                               crossAxisSpacing: 10,
-                              //childAspectRatio: 1.0,
+                              childAspectRatio: .9,
                               shrinkWrap: true,
                               physics: NeverScrollableScrollPhysics(),
                               children: [
@@ -467,26 +467,53 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                 ),
                               ),
                               SizedBox(height: 10),
-                              FutureBuilder<List<Map<String, dynamic>>>(
-                                future: groceryList,
-                                builder: (context, snapshot) {
-                                  if (snapshot.connectionState == ConnectionState.waiting) {
-                                    return const Center(child: CircularProgressIndicator());
-                                  }
-                                  if (snapshot.hasError) {
-                                    return Center(child: Text('Error: ${snapshot.error}'));
-                                  }
-                                  final data = snapshot.data ?? [];
-                                  if (data.isEmpty) {
-                                    return const Center(child: Text('No ingredients found', style: TextStyle(fontSize: 18),));
-                                  }
-                                  return ListView.builder(
-                                    shrinkWrap: true,
-                                    itemCount: data.length,
-                                    itemBuilder: (context, index) {
-                                      final item = data[index];
-                                      return ListTile(
-                                        title: Text('${item['ingredient_name']} - ${item['total_quantity']} ${item['unit']}', style: TextStyle(fontSize: 18),),
+                              StatefulBuilder(
+                                builder: (context, setGroceryState) {
+                                  Set<int> obtainedItems = {};
+                                  return FutureBuilder<List<Map<String, dynamic>>>(
+                                    future: groceryList,
+                                    builder: (context, snapshot) {
+                                      if (snapshot.connectionState == ConnectionState.waiting) {
+                                        return const Center(child: CircularProgressIndicator());
+                                      }
+                                      if (snapshot.hasError) {
+                                        return Center(child: Text('Error: ${snapshot.error}'));
+                                      }
+                                      final data = snapshot.data ?? [];
+                                      if (data.isEmpty) {
+                                        return const Center(child: Text('No ingredients found', style: TextStyle(fontSize: 18),));
+                                      }
+                                      return ListView.builder(
+                                        shrinkWrap: true,
+                                        physics: NeverScrollableScrollPhysics(),
+                                        itemCount: data.length,
+                                        itemBuilder: (context, index) {
+                                          final item = data[index];
+                                          final obtained = obtainedItems.contains(index);
+                                          final displayText = '${item['ingredient_name']} - ${item['total_quantity']} ${item['unit']}';
+                                          return CheckboxListTile(
+                                            value: obtained,
+                                            onChanged: (checked) {
+                                              setGroceryState(() {
+                                                if (checked == true) {
+                                                  obtainedItems.add(index);
+                                                } else {
+                                                  obtainedItems.remove(index);
+                                                }
+                                              });
+                                            },
+                                            title: Text(
+                                              displayText,
+                                              style: TextStyle(
+                                                fontSize: 18,
+                                                decoration: obtained ? TextDecoration.lineThrough : null,
+                                                color: obtained ? Colors.grey : Colors.black,
+                                              ),
+                                            ),
+                                            controlAffinity: ListTileControlAffinity.leading,
+                                            activeColor: const Color.fromARGB(255, 188, 44, 44),
+                                          );
+                                        },
                                       );
                                     },
                                   );
@@ -925,9 +952,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                           return;
                                         }
 
-                                        // Insert recipe into database and get the new recipe ID
+                                        //Insert recipe into database and get the new recipe ID
                                         try {
-                                          // Step 1: Insert recipe and get the new ID
+                                          //Insert recipe and get the new ID
                                           final int newRecipeId = await dbHelper.recipesdb.insert('recipestable', {
                                             'name': _recipeNameController.text.trim(),
                                             'description': _recipeDescriptionController.text.trim(),
@@ -935,7 +962,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                             'isFavorite': _isFavorite ? 1 : 0,
                                           });
 
-                                          // Step 2: Insert ingredients with recipe foreign key
+                                          //Insert ingredients with recipe foreign key
                                           for (var ingredient in _ingredients) {
                                             final name = ingredient['name']!.text.trim();
                                             final quantityText = ingredient['quantity']!.text.trim();
@@ -952,7 +979,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                             }
                                           }
 
-                                          // Step 3: Insert instructions with recipe foreign key
+                                          //Insert instructions with recipe foreign key
                                           for (int i = 0; i < _instructions.length; i++) {
                                             final description = _instructions[i].text.trim();
                                             if (description.isNotEmpty) {
@@ -964,9 +991,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                             }
                                           }
 
-                                          // Step 4: Insert recipe-tag associations with foreign keys
+                                          //Insert recipe-tag associations with foreign keys
                                           for (var tagName in _selectedRecipeTags) {
-                                            // Find the tag ID from availableTags
+                                            //Find the tag ID from availableTags
                                             final tagData = availableTags.firstWhere(
                                               (tag) => tag['name'] == tagName,
                                               orElse: () => <String, dynamic>{},
@@ -981,7 +1008,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                             }
                                           }
 
-                                          // Show success message
+                                          //Show success message
                                           ScaffoldMessenger.of(context).showSnackBar(
                                             SnackBar(
                                               content: Text('Recipe added successfully!'),
@@ -989,18 +1016,18 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                             ),
                                           );
 
-                                          // Clear form
+                                          //Clear form
                                           _recipeNameController.clear();
                                           _recipeDescriptionController.clear();
                                           
-                                          // Clear and reset ingredients
+                                          //Clear and reset ingredients
                                           for (var ingredient in _ingredients) {
                                             ingredient['name']?.dispose();
                                             ingredient['quantity']?.dispose();
                                             ingredient['unit']?.dispose();
                                           }
                                           
-                                          // Clear and reset instructions
+                                          //Clear and reset instructions
                                           for (var instruction in _instructions) {
                                             instruction.dispose();
                                           }
@@ -1010,7 +1037,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                             _isFavorite = false;
                                             _selectedRecipeTags.clear();
                                             
-                                            // Reset to single empty fields
+                                            //Reset to single empty fields
                                             _ingredients = [
                                               {
                                                 'name': TextEditingController(),
@@ -1021,7 +1048,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                             _instructions = [TextEditingController()];
                                           });
 
-                                          // Refresh recipes list
+                                          //Refresh recipes list
                                           recipesList = dbHelper.queryItemsWithFilters('', []);
                                           favoritesList = dbHelper.queryItemsWithFilters('', [], onlyFavorites: true);
                                         } catch (e) {
@@ -1071,7 +1098,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        // Use StatefulBuilder to update the dialog state independently
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
@@ -1241,7 +1267,7 @@ class _GenerateCardState extends State<generateCard> with SingleTickerProviderSt
           child: Container(
             padding: EdgeInsets.all(8.0),
             width: 250,
-            height: 200,
+            height: 300,
             decoration: BoxDecoration(
               color: Colors.white,
               border: Border.all(
@@ -1281,9 +1307,11 @@ class _GenerateCardState extends State<generateCard> with SingleTickerProviderSt
                   child: Text(
                     widget.name,
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 14,
                       fontWeight: FontWeight.bold,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 FutureBuilder<List<Map<String, dynamic>>>(
@@ -1311,6 +1339,8 @@ class _GenerateCardState extends State<generateCard> with SingleTickerProviderSt
                                 fontSize: 11,
                                 color: const Color.fromARGB(255, 255, 52, 52),
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                       ],
