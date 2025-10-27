@@ -135,8 +135,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           BottomNavigationBarItem(icon: Icon(Icons.description), label: 'Recipe'),
           BottomNavigationBarItem(icon: Icon(Icons.edit_calendar), label: 'Planner'),
           BottomNavigationBarItem(icon: Icon(Icons.favorite), label: 'Favorites'),
-          BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: 'Grocery List'),
-          BottomNavigationBarItem(icon: Icon(Icons.add), label: 'New Recipe'),
+          BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: 'Groceries'),
+          BottomNavigationBarItem(icon: Icon(Icons.add), label: 'New'),
         ],
       ),
       
