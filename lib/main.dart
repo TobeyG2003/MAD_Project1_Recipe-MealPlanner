@@ -135,7 +135,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           BottomNavigationBarItem(icon: Icon(Icons.description), label: 'Recipe'),
           BottomNavigationBarItem(icon: Icon(Icons.edit_calendar), label: 'Planner'),
           BottomNavigationBarItem(icon: Icon(Icons.favorite), label: 'Favorites'),
-          BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: 'Grocery List'),
+          BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: 'Groceries'),
           BottomNavigationBarItem(icon: Icon(Icons.share), label: 'Share'),
         ],
       ),
@@ -277,15 +277,15 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                               crossAxisCount: 2,
                               mainAxisSpacing: 10,
                               crossAxisSpacing: 10,
-                              //childAspectRatio: 1.0,
+                              childAspectRatio: 0.8,// prevents overflow
                               shrinkWrap: true,
                               physics: NeverScrollableScrollPhysics(),
                               children: [
                                 for (var i = 0; i < data.length; i++)
                                   generateCard(
-                                    recipeId: data[i]['id'] as int,
+                                    recipeId: (data[i]['id'] ?? 0) as int,
                                     name: (data[i]['name'] ?? '').toString(),
-                                    // Use the actual DB column key 'imageURl' and guard nulls
+                                
                                     recipeimageUrl: (data[i]['imageURl'] ?? '').toString(),
                                     index: i,
                                   )
@@ -403,14 +403,14 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                               crossAxisCount: 2,
                               mainAxisSpacing: 10,
                               crossAxisSpacing: 10,
-                              //childAspectRatio: 1.0,
+                              childAspectRatio: 0.8,
                               shrinkWrap: true,
                               children: [
                                 for (var i = 0; i < data.length; i++)
                                   generateCard(
-                                    recipeId: data[i]['id'] as int,
+                                    recipeId: (data[i]['id'] ?? 0) as int,
                                     name: (data[i]['name'] ?? '').toString(),
-                                    recipeimageUrl: (data[i]['imageUrl'] ?? '').toString(),
+                                    recipeimageUrl: (data[i]['imageURl'] ?? '').toString(),
                                     index: i,
                                   )
                               ],
@@ -468,7 +468,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                               ),
                               SizedBox(height: 10),
                               FutureBuilder<List<Map<String, dynamic>>>(
-                                future: groceryList,
+                                future: dbHelper.getGrocerylistfromallMeals(), // making sure that list changes depending on what's in the planner
                                 builder: (context, snapshot) {
                                   if (snapshot.connectionState == ConnectionState.waiting) {
                                     return const Center(child: CircularProgressIndicator());
@@ -482,11 +482,12 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                   }
                                   return ListView.builder(
                                     shrinkWrap: true,
+                                    physics: NeverScrollableScrollPhysics(),
                                     itemCount: data.length,
                                     itemBuilder: (context, index) {
                                       final item = data[index];
                                       return ListTile(
-                                        title: Text('${item['ingredient_name']} - ${item['total_quantity']} ${item['unit']}', style: TextStyle(fontSize: 18),),
+                                        title: Text('${item['name']} - ${item['totalQuantity']} ${item['unit']}', style: TextStyle(fontSize: 14),),
                                       );
                                     },
                                   );
@@ -1225,15 +1226,26 @@ class _GenerateCardState extends State<generateCard> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () {
-        // when card is tapped, goes to recipe details screen depending on id
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => RecipeDetailScreen(recipeId: widget.recipeId),
-          ),
-        );
-      },
+      onTap: () async {
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => RecipeDetailScreen(recipeId: widget.recipeId),
+        ),
+      );
+
+      if (result == 2) {
+        // Meal plan update later
+      } else {
+        // refresh favorites
+        final homeState = context.findAncestorStateOfType<_MyHomePageState>();
+        homeState?.setState(() {
+          homeState.favoritesList =
+              dbHelper.queryItemsWithFilters('', [], onlyFavorites: true);
+        });
+  }
+},
+
       child: FadeTransition(
         opacity: _opacityAnimation,
         child: SlideTransition(
