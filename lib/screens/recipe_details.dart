@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../database_setup.dart';
 import '../main.dart' show dbHelper; // using existing db
 import 'package:share_plus/share_plus.dart';
+import 'dart:convert';
+import 'dart:typed_data';
 
 
 class RecipeDetailScreen extends StatefulWidget {
@@ -91,12 +93,27 @@ class _RecipeDetailsScreenState extends State<RecipeDetailScreen> {
             // image of recipe
             ClipRRect(
               borderRadius: BorderRadius.circular(10),
-              child: Image.asset(
-                recipe!['imageURl'],
-                height: 200,
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
+              child: recipe!['imageURl'] == null || recipe!['imageURl'].isEmpty
+                  ? Container(
+                      width: double.infinity,
+                      height: 200,
+                      color: Colors.grey.shade300,
+                      alignment: Alignment.center,
+                      child: const Icon(Icons.image_not_supported, size: 50),
+                    )
+                  : recipe!['imageURl'].startsWith('base64,')
+                      ? Image.memory(
+                          base64Decode(recipe!['imageURl'].substring('base64,'.length)),
+                          height: 200,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        )
+                      : Image.asset(
+                          recipe!['imageURl'],
+                          height: 200,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
             ),
 
             const SizedBox(height: 10),

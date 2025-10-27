@@ -449,9 +449,9 @@ Future<List<Map<String, dynamic>>> getFavoriteRecipes() async {
     // Convert to the expected list format
     final List<Map<String, dynamic>> result = totals.values.map((entry) {
       return {
-        ingredientname: entry['name'],
-        'totalQuantity': entry['quantity'],
-        ingredientunit: entry['unit'],
+        'ingredient_name': entry['name'],
+        'total_quantity': entry['quantity'],
+        'unit': entry['unit'],
       };
     }).toList();
 

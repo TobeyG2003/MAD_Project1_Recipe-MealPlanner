@@ -48,6 +48,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   Future<List<Map<String, dynamic>>> recipesList = Future.value([]);
   Future<List<Map<String, dynamic>>> favoritesList = Future.value([]);
   Future<List<Map<String, dynamic>>> groceryList = Future.value([]);
+  Set<int> _obtainedGroceryItems = {}; // Track which grocery items are checked
 
   // Share tab form controllers
   final TextEditingController _recipeNameController = TextEditingController();
@@ -73,12 +74,21 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       @override
       void initState() {
         super.initState();
-        _tabController = TabController(length: 6, vsync: this);
+        _tabController = TabController(length: 5, vsync: this);
         _tabController.animation!.addListener(() {
         setState(() {
           
         });
       });
+        // Add listener to refresh grocery list when switching to that tab
+        _tabController.addListener(() {
+          if (_tabController.index == 4) { // Grocery list is tab index 4
+            setState(() {
+              groceryList = dbHelper.getGrocerylistfromallMeals();
+            });
+          }
+        });
+        
         // Initialize the database helper and load initial recipes
         dbHelper.init().then((_) async {
           recipesList = dbHelper.queryItemsWithFilters('', []);
@@ -132,7 +142,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         selectedItemColor: Colors.white,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.description), label: 'Recipe'),
           BottomNavigationBarItem(icon: Icon(Icons.edit_calendar), label: 'Planner'),
           BottomNavigationBarItem(icon: Icon(Icons.favorite), label: 'Favorites'),
           BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: 'Groceries'),
@@ -298,19 +307,15 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 ),
                       ),
                     ),
-                    // tab 2 recipes, shows generic message until user presses on recipe on homepage
-                    selectedRecipeId == null
-                      ? const Center(
-                        child: Text(
-                            'Select a recipe to view details',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-                          ),
-                        )
-                      : RecipeDetailScreen(recipeId: selectedRecipeId!),
-
-                    //tab 3 planner
-                    MealPlannerScreen(),
-                    //tab 4 favorites, basically same stuff as recipes
+                    //tab 2 planner
+                    MealPlannerScreen(
+                      onGroceryListGenerated: () {
+                        setState(() {
+                          groceryList = dbHelper.getGrocerylistfromallMeals();
+                        });
+                      },
+                    ),
+                    //tab 3 favorites, basically same stuff as recipes
                     SingleChildScrollView(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.start,
@@ -421,7 +426,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                   ],
                 ),
                     ),
-                    //tab 5 grocery list
+                    //tab 4 grocery list
                     SingleChildScrollView(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.start,
@@ -469,7 +474,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                               SizedBox(height: 10),
                               StatefulBuilder(
                                 builder: (context, setGroceryState) {
-                                  Set<int> obtainedItems = {};
                                   return FutureBuilder<List<Map<String, dynamic>>>(
                                     future: groceryList,
                                     builder: (context, snapshot) {
@@ -489,16 +493,16 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                         itemCount: data.length,
                                         itemBuilder: (context, index) {
                                           final item = data[index];
-                                          final obtained = obtainedItems.contains(index);
+                                          final obtained = _obtainedGroceryItems.contains(index);
                                           final displayText = '${item['ingredient_name']} - ${item['total_quantity']} ${item['unit']}';
                                           return CheckboxListTile(
                                             value: obtained,
                                             onChanged: (checked) {
                                               setGroceryState(() {
                                                 if (checked == true) {
-                                                  obtainedItems.add(index);
+                                                  _obtainedGroceryItems.add(index);
                                                 } else {
-                                                  obtainedItems.remove(index);
+                                                  _obtainedGroceryItems.remove(index);
                                                 }
                                               });
                                             },
@@ -525,7 +529,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                       ],
                       ),
                     ),
-                    //tab 6 add new screen with complete recipe form
+                    //tab 5 add new screen with complete recipe form
                     SingleChildScrollView(
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),

@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import '../database_setup.dart';
 
 class MealPlannerScreen extends StatefulWidget {
-  const MealPlannerScreen({super.key});
+  final VoidCallback? onGroceryListGenerated;
+  const MealPlannerScreen({super.key, this.onGroceryListGenerated});
 
   @override
   State<MealPlannerScreen> createState() => _MealPlannerScreenState();
@@ -49,6 +50,7 @@ class _MealPlannerScreenState extends State<MealPlannerScreen> {
   Future<void> _generateGroceryList() async {
       groceryList = dbHelper.getGrocerylistfromallMeals(); // refreshes list based on what's in the plan
       setState(() {});
+      widget.onGroceryListGenerated?.call(); // Notify parent widget
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Grocery List Updated!')),
       );
