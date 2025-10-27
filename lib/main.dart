@@ -43,7 +43,12 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   int? selectedRecipeId; // for when a recipe is selected, it knows what id to pull up in the recipes tab
   List<String> selectedTags = []; // list of currently selected tags for filtering
   List<Map<String, dynamic>> availableTags = []; // all available tags from database
-  String searchText = ''; // current search text
+  String searchText = ''; // current search text (legacy, used by tag dialog)
+  // Separate search state per tab to avoid cross-tab interference
+  String recipesSearchText = '';
+  String favoritesSearchText = '';
+  final TextEditingController _recipesSearchController = TextEditingController();
+  final TextEditingController _favoritesSearchController = TextEditingController();
   // Initialize with an empty list future so build can run before DB init completes.
   Future<List<Map<String, dynamic>>> recipesList = Future.value([]);
   Future<List<Map<String, dynamic>>> favoritesList = Future.value([]);
@@ -75,18 +80,19 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       void initState() {
         super.initState();
         _tabController = TabController(length: 5, vsync: this);
-        _tabController.animation!.addListener(() {
-        setState(() {
-          
-        });
-      });
         // Add listener to refresh grocery list when switching to that tab
         _tabController.addListener(() {
-          if (_tabController.index == 4) { // Grocery list is tab index 4
-            setState(() {
+          setState(() {
+            if (_tabController.index == 0) {
+              // Recipes tab: refresh with current recipes search text and tags
+              recipesList = dbHelper.queryItemsWithFilters(recipesSearchText, selectedTags);
+            } else if (_tabController.index == 2) {
+              // Favorites tab
+              favoritesList = dbHelper.queryItemsWithFilters(favoritesSearchText, selectedTags, onlyFavorites: true);
+            } else if (_tabController.index == 4) { // Grocery list is tab index 4
               groceryList = dbHelper.getGrocerylistfromallMeals();
-            });
-          }
+            }
+          });
         });
         
         // Initialize the database helper and load initial recipes
@@ -105,6 +111,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         _tabController.dispose();
         _recipeNameController.dispose();
         _recipeDescriptionController.dispose();
+        _recipesSearchController.dispose();
+        _favoritesSearchController.dispose();
         
         // Dispose ingredient controllers
         for (var ingredient in _ingredients) {
@@ -234,6 +242,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                               borderRadius: BorderRadius.circular(8.0),
                             ),
                             child: TextField(
+                              controller: _recipesSearchController,
                               decoration: InputDecoration(
                                 hintText: 'Search recipes...',
                                 contentPadding: EdgeInsets.symmetric(horizontal: 10.0),
@@ -241,8 +250,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                               ),
                               onChanged: (text) {
                                 setState(() {
-                                  searchText = text;
-                                  recipesList = dbHelper.queryItemsWithFilters(text, selectedTags);
+                                  recipesSearchText = text;
+                                  searchText = text; // keep legacy in sync for tag dialog
+                                  recipesList = dbHelper.queryItemsWithFilters(recipesSearchText, selectedTags);
                                 });
                               },
                             ),
@@ -356,6 +366,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                               borderRadius: BorderRadius.circular(8.0),
                             ),
                             child: TextField(
+                              controller: _favoritesSearchController,
                               decoration: InputDecoration(
                                 hintText: 'Search favorites...',
                                 contentPadding: EdgeInsets.symmetric(horizontal: 10.0),
@@ -363,8 +374,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                               ),
                               onChanged: (text) {
                                 setState(() {
-                                  searchText = text;
-                                  favoritesList = dbHelper.queryItemsWithFilters(text, selectedTags, onlyFavorites: true);
+                                  favoritesSearchText = text;
+                                  searchText = text; // keep legacy in sync for tag dialog
+                                  favoritesList = dbHelper.queryItemsWithFilters(favoritesSearchText, selectedTags, onlyFavorites: true);
                                 });
                               },
                             ),
@@ -1127,7 +1139,11 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                           selectedTags.clear();
                         });
                         setState(() {
-                          recipesList = dbHelper.queryItemsWithFilters(searchText, selectedTags);
+                          if (_tabController.index == 2) {
+                            favoritesList = dbHelper.queryItemsWithFilters(favoritesSearchText, selectedTags, onlyFavorites: true);
+                          } else {
+                            recipesList = dbHelper.queryItemsWithFilters(recipesSearchText, selectedTags);
+                          }
                         });
                       },
                       child: Text('Clear All'),
@@ -1173,7 +1189,11 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 ElevatedButton(
                   onPressed: () {
                     setState(() {
-                      recipesList = dbHelper.queryItemsWithFilters(searchText, selectedTags);
+                      if (_tabController.index == 2) {
+                        favoritesList = dbHelper.queryItemsWithFilters(favoritesSearchText, selectedTags, onlyFavorites: true);
+                      } else {
+                        recipesList = dbHelper.queryItemsWithFilters(recipesSearchText, selectedTags);
+                      }
                     });
                     Navigator.of(context).pop();
                   },
