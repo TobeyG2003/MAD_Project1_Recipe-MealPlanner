@@ -1,62 +1,60 @@
 import 'package:flutter/material.dart';
 import '../database_setup.dart';
-import '../helpers/mealplan_helper.dart'; 
 
 class MealPlannerScreen extends StatefulWidget {
   const MealPlannerScreen({super.key});
 
   @override
   State<MealPlannerScreen> createState() => _MealPlannerScreenState();
+
 }
 
 class _MealPlannerScreenState extends State<MealPlannerScreen> {
   final dbHelper = DatabaseHelper();
-  final plannerHelper = MealPlannerHelper();
+  List<Map<String, dynamic>> meals = []; // meals assigned to each day
+  late Future<List<Map<String, dynamic>>> groceryList;
 
-  List<Map<String, dynamic>> recipes = [];
-  Map<String, int?> selectedRecipes = {
-    'Sunday': null,
-    'Monday': null,
-    'Tuesday': null,
-    'Wednesday': null,
-    'Thursday': null,
-    'Friday': null,
-    'Saturday': null,
-  };
+
+  final days = [
+    'Sunday',
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday'
+  ];
 
   @override
   void initState() {
     super.initState();
-    _loadRecipes();
+    _loadMeals();
   }
 
-  Future<void> _loadRecipes() async {
-    await dbHelper.init(); // initialize all dbs
-    final data = await dbHelper.recipesdb.query('recipestable');
-    setState(() {
-      recipes = data;
+  Future<void> _loadMeals() async {
+    await dbHelper.init();
+    final saved = await dbHelper.getRecipesfromMeals();
+    setState(() { // update ui w/ db results
+      meals = saved; 
+      groceryList = dbHelper.getGrocerylistfromallMeals(); 
     });
   }
-// message at bottom
+
   Future<void> _savePlan() async {
-    await plannerHelper.savePlan(selectedRecipes);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Meal plan saved!')),
     );
   }
 
- /* Future<void> _generateGroceryList() async {
-    final ingredients = await plannerHelper.generateGroceryList();
-    if (!mounted) return; // if user isn't on screen, stop
+  Future<void> _generateGroceryList() async {
+      groceryList = dbHelper.getGrocerylistfromallMeals(); // refreshes list based on what's in the plan
+      setState(() {});
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Grocery List Updated!')),
+      );
+}
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => GroceryListScreen(ingredients: ingredients),
-      ),
-    );
-  }
-*/
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -64,30 +62,53 @@ class _MealPlannerScreenState extends State<MealPlannerScreen> {
         title: const Text('Meal Planner'),
         backgroundColor: const Color.fromARGB(255, 188, 44, 44),
       ),
-      body: ListView(
-        children: selectedRecipes.keys.map((day) {
+      body: ListView.builder(
+        itemCount: days.length,
+        itemBuilder: (context, index) {
+          if (meals.isEmpty) {
+            return ListTile(
+              title: Text(days[index],
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: const Text('No recipe selected'),
+            );
+          }
+
+          final meal = meals[index];
+          final recipeName = meal['name'];
+          final hasRecipe = recipeName != null;
+
           return ListTile(
-            title: Text(day, style: const TextStyle(fontWeight: FontWeight.bold)),
-            trailing: DropdownButton<int?>(
-              value: selectedRecipes[day],
-              hint: const Text('Select Recipe'),
-              items: recipes
-                  .map((r) => DropdownMenuItem(
-                        value: r['id'] as int,
-                        child: Text(r['name']),
-                      ))
-                  .toList(),
-              onChanged: (value) {
-                setState(() {
-                  selectedRecipes[day] = value;
-                });
-              },
+            title: Text(
+              days[index],
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
+            subtitle: Text(
+              hasRecipe ? recipeName : 'No recipe selected',
+            ),
+            trailing: IconButton(
+              icon: const Icon(Icons.delete_outline),
+              color: hasRecipe ? Colors.red : Colors.grey,
+              tooltip: 'Clear',
+              onPressed: hasRecipe // clear meal button
+                  ? () async {
+                      final mealId = index + 1;
+                      await dbHelper.clearMeal(mealId);
+
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Cleared ${days[index]}')),
+                      );
+                      _loadMeals();
+                    }
+                  : null,
+            ),
+           
+               
           );
-        }).toList(),
+        },
       ),
       bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
@@ -99,14 +120,14 @@ class _MealPlannerScreenState extends State<MealPlannerScreen> {
               icon: const Icon(Icons.save),
               label: const Text('Save Plan'),
             ),
-           /* ElevatedButton.icon(
+            ElevatedButton.icon(
               onPressed: _generateGroceryList,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue.shade100,
               ),
               icon: const Icon(Icons.list),
-              label: const Text('Grocery List'),
-            ), */
+              label: const Text('Generate Grocery List'),
+            ),
           ],
         ),
       ),

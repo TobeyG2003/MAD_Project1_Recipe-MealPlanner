@@ -199,37 +199,34 @@ await db.insert('mealstable', {'recipeId': null, 'date': 'Saturday',});
   }
 
   Future<bool> getFavoriteStatus(int id) async {
-    final List<Map<String, dynamic>> result = await recipesdb.query(
-      'recipestable',
-      columns: [recipefavorite],
-      where: '$recipeid = ?',
-      whereArgs: [id],
-    );
-    if (result.isNotEmpty) {
-      return result.first[recipefavorite] == 1;
-    }
-    return false;
-  }
+  final result = await recipesdb.query(
+    'recipestable',
+    columns: [recipefavorite],
+    where: '$recipeid = ?',
+    whereArgs: [id],
+  );
 
-  Future<int> toggleFavorite(int id) async {
-    bool currentStatus = await getFavoriteStatus(id);
-    return await recipesdb.update(
-      'recipestable',
-      {
-        recipefavorite: currentStatus ? 1 : 0,
-      },
-      where: '$recipeid = ?',
-      whereArgs: [id],
-    );
-  }
+  return result.isNotEmpty && result.first[recipefavorite] == 1;
+}
 
-  /*Future<List<Map<String, dynamic>>> getFavoriteRecipes() async {
-    return await recipesdb.query(
-      'recipestable',
-      where: '$recipefavorite = ?',
-      whereArgs: [1],
-    );
-  }*/
+Future<void> toggleFavorite(int id) async {
+  final current = await getFavoriteStatus(id);
+  final newValue = current ? 0 : 1;
+
+  await recipesdb.update(
+    'recipestable',
+    {recipefavorite: newValue},
+    where: '$recipeid = ?',
+    whereArgs: [id],
+  );
+}
+
+Future<List<Map<String, dynamic>>> getFavoriteRecipes() async {
+  return await recipesdb.query(
+    'recipestable',
+    where: '$recipefavorite = 1',
+  );
+}
 
   Future<List<Map<String, dynamic>>> queryItemsWithFilters(String nameSearch, List<String> tags, {bool? onlyFavorites}) async {
 
@@ -420,7 +417,7 @@ await db.insert('mealstable', {'recipeId': null, 'date': 'Saturday',});
 
     if (meals.isEmpty) return [];
 
-    // Map key = '$name|$unit' -> { 'name': name, 'unit': unit, 'quantity': double }
+      //Map key = '$name|$unit' -> { 'name': name, 'unit': unit, 'quantity': double }
     final Map<String, Map<String, dynamic>> totals = {};
 
     for (final meal in meals) {

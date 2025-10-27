@@ -19,6 +19,16 @@ class _RecipeDetailsScreenState extends State<RecipeDetailScreen> {
   List<Map<String, dynamic>> instructions = [];
   List<Map<String, dynamic>> tags = [];
 
+  final days = [
+    'Sunday',
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday'
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -105,15 +115,22 @@ class _RecipeDetailsScreenState extends State<RecipeDetailScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                ElevatedButton(onPressed: () async {
-                  await db.toggleFavorite(widget.recipeId);
-                  setState((){});
-                }, child: const Text('Favorite'),
+                ElevatedButton(
+                    onPressed: () async {
+                  
+
+                      await db.toggleFavorite(widget.recipeId);  // update db
+                      bool status = await db.getFavoriteStatus(widget.recipeId); // fetch new value
+
+                      setState(() {
+                       recipe = {...recipe!, 'recipefavorite': status ? 1 : 0,};
+                      });
+                    },
+
+                  child: Text( // changing the button from favorite to unfavorite and vice versa
+                  recipe!['recipefavorite'] == 1 ? 'Unfavorite' : 'Favorite'
                 ),
-                const SizedBox(width: 8),
-                ElevatedButton(onPressed: () {
-                  Navigator.pop(context, 2);
-                }, child: const Text('Meal Plan')),
+             ),
                 const SizedBox(width: 8),
                 ElevatedButton(onPressed: () {
                   Share.share(
@@ -126,6 +143,36 @@ class _RecipeDetailsScreenState extends State<RecipeDetailScreen> {
 
             const SizedBox(height: 20),
 
+            // adding recipe to specific day
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text('Add to Meal Plan',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            ),
+            const SizedBox(height: 8),
+
+            // buttons for meal plan
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: List.generate(days.length, (index) {
+                final day = days[index];
+                final mealId = index + 1;
+                return ElevatedButton(
+                  onPressed: () async {
+                    await db.updateMeal(mealId, widget.recipeId);
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Added to $day')),
+                    );
+                  },
+                  child: Text(day),
+                );
+              }),
+            ),
+
+            const SizedBox(height: 20),
+
             // ingredients section
             const Align(
               alignment: Alignment.centerLeft,
@@ -133,7 +180,7 @@ class _RecipeDetailsScreenState extends State<RecipeDetailScreen> {
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
             ),
             const SizedBox(height: 6),
-            ...ingredients.map((i) => Align( // creates text widget for every ingredient and puts them on its own line
+            ...ingredients.map((i) => Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
                     '- ${i['quantity']} ${i['unit']} ${i['name']} ', // ingredient measurements

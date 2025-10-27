@@ -283,9 +283,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                               children: [
                                 for (var i = 0; i < data.length; i++)
                                   generateCard(
-                                    recipeId: data[i]['id'] as int,
+                                    recipeId: (data[i]['id'] ?? 0) as int,
                                     name: (data[i]['name'] ?? '').toString(),
-                                    // Use the actual DB column key 'imageURl' and guard nulls
+                                
                                     recipeimageUrl: (data[i]['imageURl'] ?? '').toString(),
                                     index: i,
                                   )
@@ -403,14 +403,14 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                               crossAxisCount: 2,
                               mainAxisSpacing: 10,
                               crossAxisSpacing: 10,
-                              //childAspectRatio: 1.0,
+                              childAspectRatio: 0.8,
                               shrinkWrap: true,
                               children: [
                                 for (var i = 0; i < data.length; i++)
                                   generateCard(
-                                    recipeId: data[i]['id'] as int,
+                                    recipeId: (data[i]['id'] ?? 0) as int,
                                     name: (data[i]['name'] ?? '').toString(),
-                                    recipeimageUrl: (data[i]['imageUrl'] ?? '').toString(),
+                                    recipeimageUrl: (data[i]['imageURl'] ?? '').toString(),
                                     index: i,
                                   )
                               ],
@@ -953,7 +953,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                         }
 
                                         //Insert recipe into database and get the new recipe ID
+                                        //Insert recipe into database and get the new recipe ID
                                         try {
+                                          //Insert recipe and get the new ID
                                           //Insert recipe and get the new ID
                                           final int newRecipeId = await dbHelper.recipesdb.insert('recipestable', {
                                             'name': _recipeNameController.text.trim(),
@@ -962,6 +964,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                             'isFavorite': _isFavorite ? 1 : 0,
                                           });
 
+                                          //Insert ingredients with recipe foreign key
                                           //Insert ingredients with recipe foreign key
                                           for (var ingredient in _ingredients) {
                                             final name = ingredient['name']!.text.trim();
@@ -980,6 +983,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                           }
 
                                           //Insert instructions with recipe foreign key
+                                          //Insert instructions with recipe foreign key
                                           for (int i = 0; i < _instructions.length; i++) {
                                             final description = _instructions[i].text.trim();
                                             if (description.isNotEmpty) {
@@ -992,7 +996,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                           }
 
                                           //Insert recipe-tag associations with foreign keys
+                                          //Insert recipe-tag associations with foreign keys
                                           for (var tagName in _selectedRecipeTags) {
+                                            //Find the tag ID from availableTags
                                             //Find the tag ID from availableTags
                                             final tagData = availableTags.firstWhere(
                                               (tag) => tag['name'] == tagName,
@@ -1009,6 +1015,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                           }
 
                                           //Show success message
+                                          //Show success message
                                           ScaffoldMessenger.of(context).showSnackBar(
                                             SnackBar(
                                               content: Text('Recipe added successfully!'),
@@ -1017,9 +1024,11 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                           );
 
                                           //Clear form
+                                          //Clear form
                                           _recipeNameController.clear();
                                           _recipeDescriptionController.clear();
                                           
+                                          //Clear and reset ingredients
                                           //Clear and reset ingredients
                                           for (var ingredient in _ingredients) {
                                             ingredient['name']?.dispose();
@@ -1027,6 +1036,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                             ingredient['unit']?.dispose();
                                           }
                                           
+                                          //Clear and reset instructions
                                           //Clear and reset instructions
                                           for (var instruction in _instructions) {
                                             instruction.dispose();
@@ -1048,6 +1058,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                             _instructions = [TextEditingController()];
                                           });
 
+                                          //Refresh recipes list
                                           //Refresh recipes list
                                           recipesList = dbHelper.queryItemsWithFilters('', []);
                                           favoritesList = dbHelper.queryItemsWithFilters('', [], onlyFavorites: true);
@@ -1251,15 +1262,26 @@ class _GenerateCardState extends State<generateCard> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () {
-        // when card is tapped, goes to recipe details screen depending on id
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => RecipeDetailScreen(recipeId: widget.recipeId),
-          ),
-        );
-      },
+      onTap: () async {
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => RecipeDetailScreen(recipeId: widget.recipeId),
+        ),
+      );
+
+      if (result == 2) {
+        // Meal plan update later
+      } else {
+        // refresh favorites
+        final homeState = context.findAncestorStateOfType<_MyHomePageState>();
+        homeState?.setState(() {
+          homeState.favoritesList =
+              dbHelper.queryItemsWithFilters('', [], onlyFavorites: true);
+        });
+  }
+},
+
       child: FadeTransition(
         opacity: _opacityAnimation,
         child: SlideTransition(
