@@ -136,7 +136,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           BottomNavigationBarItem(icon: Icon(Icons.edit_calendar), label: 'Planner'),
           BottomNavigationBarItem(icon: Icon(Icons.favorite), label: 'Favorites'),
           BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: 'Grocery List'),
-          BottomNavigationBarItem(icon: Icon(Icons.share), label: 'Share'),
+          BottomNavigationBarItem(icon: Icon(Icons.add), label: 'New Recipe'),
         ],
       ),
       
@@ -525,7 +525,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                       ],
                       ),
                     ),
-                    //tab 6 share screen with complete recipe form
+                    //tab 6 add new screen with complete recipe form
                     SingleChildScrollView(
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
@@ -547,7 +547,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                 borderRadius: BorderRadius.circular(8.0),
                               ),
                               child: Text(
-                                'Share a Recipe',
+                                'Add a New Recipe',
                                 style: TextStyle(
                                   fontSize: 30,
                                 ),
